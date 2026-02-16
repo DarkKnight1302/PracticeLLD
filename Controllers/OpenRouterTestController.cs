@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using PracticeLLD.OpenRouter;
@@ -97,6 +98,50 @@ public class OpenRouterTestController : ControllerBase
             Usage = result.Usage
         });
     }
+
+    /// <summary>
+    /// Send a prompt to OpenRouter with a JSON schema and get a structured JSON response.
+    /// </summary>
+    [HttpPost("json-schema")]
+    public async Task<IActionResult> SendPromptWithJsonSchema([FromBody] JsonSchemaPromptRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserPrompt))
+        {
+            return BadRequest(new { error = "userPrompt is required." });
+        }
+
+        if (request.JsonSchema == null)
+        {
+            return BadRequest(new { error = "jsonSchema is required." });
+        }
+
+        var result = await _openRouterClient.SendPromptJsonAsync<JsonElement>(
+            userPrompt: request.UserPrompt,
+            jsonSchema: request.JsonSchema,
+            schemaName: request.SchemaName ?? "response",
+            systemPrompt: request.SystemPrompt,
+            assistantPrompt: request.AssistantPrompt,
+            temperature: request.Temperature,
+            reasoningEffort: request.ReasoningEffort,
+            maxOutputTokens: request.MaxOutputTokens,
+            cancellationToken: cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return StatusCode(502, new
+            {
+                error = result.ErrorMessage
+            });
+        }
+
+        return Ok(new JsonSchemaPromptResponse
+        {
+            Data = result.Data,
+            TextResponse = result.TextResponse,
+            ReasoningSummary = result.ReasoningSummary,
+            Usage = result.Usage
+        });
+    }
 }
 
 #region Request / Response DTOs
@@ -133,6 +178,29 @@ public class ConversationMessage
 
 public class PromptResponse
 {
+    public string? TextResponse { get; set; }
+    public List<string>? ReasoningSummary { get; set; }
+    public UsageInfo? Usage { get; set; }
+}
+
+public class JsonSchemaPromptRequest
+{
+    public string? UserPrompt { get; set; }
+    public string? SystemPrompt { get; set; }
+    public string? AssistantPrompt { get; set; }
+    public object? JsonSchema { get; set; }
+    public string? SchemaName { get; set; }
+    public double? Temperature { get; set; }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ReasoningEffort ReasoningEffort { get; set; } = ReasoningEffort.None;
+
+    public int? MaxOutputTokens { get; set; }
+}
+
+public class JsonSchemaPromptResponse
+{
+    public JsonElement? Data { get; set; }
     public string? TextResponse { get; set; }
     public List<string>? ReasoningSummary { get; set; }
     public UsageInfo? Usage { get; set; }
