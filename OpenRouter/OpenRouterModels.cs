@@ -176,7 +176,19 @@ public class OutputItem
     public string? EncryptedContent { get; set; }
 
     [JsonPropertyName("summary")]
-    public List<string>? Summary { get; set; }
+    public List<SummaryItem>? Summary { get; set; }
+}
+
+/// <summary>
+/// Summary item in a reasoning output.
+/// </summary>
+public class SummaryItem
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("text")]
+    public string? Text { get; set; }
 }
 
 /// <summary>

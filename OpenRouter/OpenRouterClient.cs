@@ -12,7 +12,7 @@ namespace PracticeLLD.OpenRouter;
 public class OpenRouterClient : IOpenRouterClient
 {
     private const string BaseUrl = "https://openrouter.ai/api/v1/responses";
-    private const string ApiKeySecretName = "OpenRouterApiKey";
+    private const string ApiKeySecretName = "openRouterKey";
     private const string DefaultModel = "openai/o4-mini";
 
     private readonly HttpClient _httpClient;
@@ -326,7 +326,10 @@ public class OpenRouterClient : IOpenRouterClient
         {
             if (output.Type == "reasoning" && output.Summary != null && output.Summary.Count > 0)
             {
-                return output.Summary;
+                return output.Summary
+                    .Where(s => !string.IsNullOrEmpty(s.Text))
+                    .Select(s => s.Text!)
+                    .ToList();
             }
         }
 

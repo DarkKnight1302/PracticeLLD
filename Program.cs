@@ -1,3 +1,5 @@
+using NewHorizonLib;
+using PracticeLLD.Constants;
 using PracticeLLD.OpenRouter;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,9 @@ builder.Services.AddOpenRouterClient();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddMemoryCache();
+
+Registration.InitializeServices(builder.Services, builder.Configuration, "PracticeLLD", 0, GlobalConstant.Issuer, "PracticeLLDClient");
 
 var app = builder.Build();
 
@@ -23,6 +28,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
