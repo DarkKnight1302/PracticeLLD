@@ -13,7 +13,7 @@ public class OpenRouterClient : IOpenRouterClient
 {
     private const string BaseUrl = "https://openrouter.ai/api/v1/responses";
     private const string ApiKeySecretName = "openRouterKey";
-    private const string DefaultModel = "openai/o4-mini";
+    private const string DefaultModel = "arcee-ai/trinity-large-preview:free";
 
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
@@ -25,10 +25,9 @@ public class OpenRouterClient : IOpenRouterClient
     /// </summary>
     /// <param name="secretService">The secret service to retrieve the API key.</param>
     /// <param name="model">The model to use (e.g., "openai/o4-mini"). Defaults to "openai/o4-mini".</param>
-    public OpenRouterClient(ISecretService secretService, string model = DefaultModel)
+    public OpenRouterClient(ISecretService secretService)
     {
         ArgumentNullException.ThrowIfNull(secretService);
-        ArgumentException.ThrowIfNullOrWhiteSpace(model);
 
         _apiKey = secretService.GetSecretValue(ApiKeySecretName);
         if (string.IsNullOrWhiteSpace(_apiKey))
@@ -36,7 +35,7 @@ public class OpenRouterClient : IOpenRouterClient
             throw new InvalidOperationException($"API key '{ApiKeySecretName}' not found in secret service.");
         }
 
-        _model = model;
+        _model = DefaultModel;
         _httpClient = new HttpClient();
 
         _jsonOptions = new JsonSerializerOptions

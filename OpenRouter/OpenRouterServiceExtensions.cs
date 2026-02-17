@@ -15,13 +15,12 @@ public static class OpenRouterServiceExtensions
     /// <param name="model">The model to use (e.g., "openai/o4-mini"). Defaults to "openai/o4-mini".</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddOpenRouterClient(
-        this IServiceCollection services,
-        string model = "openai/o4-mini")
+        this IServiceCollection services)
     {
         services.AddSingleton<IOpenRouterClient>(sp =>
         {
             var secretService = sp.GetRequiredService<NewHorizonLib.Services.ISecretService>();
-            return new OpenRouterClient(secretService, model);
+            return new OpenRouterClient(secretService);
         });
 
         return services;
@@ -41,7 +40,7 @@ public static class OpenRouterServiceExtensions
         var options = new OpenRouterOptions();
         configure(options);
 
-        return services.AddOpenRouterClient(options.Model);
+        return services.AddOpenRouterClient();
     }
 }
 

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace PracticeLLD.OpenRouter;
@@ -239,7 +240,7 @@ public class OutputTokenDetails
 public class ErrorInfo
 {
     [JsonPropertyName("code")]
-    public string? Code { get; set; }
+    public JsonElement? Code { get; set; }
 
     [JsonPropertyName("message")]
     public string? Message { get; set; }

@@ -1,6 +1,7 @@
 using NewHorizonLib;
 using PracticeLLD.Constants;
 using PracticeLLD.OpenRouter;
+using PracticeLLD.Services.LldQuestion;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,9 @@ builder.Services.AddControllers();
 // Register OpenRouter client
 // Note: This requires NewHorizonLib be initialized to provide ISecretService service
 builder.Services.AddOpenRouterClient();
+
+// Register LLD Question generation service
+builder.Services.AddSingleton<ILldQuestionService, LldQuestionService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
