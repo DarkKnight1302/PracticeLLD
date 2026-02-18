@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison - LLD Question Generation</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 20px; text-align: center; border-bottom: 2px solid #0f3460; }
+        .header h1 { color: #e94560; font-size: 1.8rem; margin-bottom: 5px; }
+        .header p { color: #a0a0b0; font-size: 0.9rem; }
+        .controls { display: flex; justify-content: center; gap: 20px; padding: 20px; background: #16213e; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label { font-size: 0.8rem; color: #a0a0b0; text-transform: uppercase; letter-spacing: 0.5px; }
+        select { padding: 8px 12px; border-radius: 6px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 0.9rem; cursor: pointer; }
+        select:focus { outline: none; border-color: #e94560; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: #e94560; color: white; }
+        .btn-primary:hover { background: #c73652; }
+        .btn-primary:disabled { background: #5a2030; cursor: not-allowed; }
+        .btn-secondary { background: #0f3460; color: white; }
+        .btn-secondary:hover { background: #1a4a80; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-success:hover { background: #27ae60; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #e67e22; }
+        .comparison-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .model-panel { background: #16213e; border-radius: 10px; padding: 20px; border: 2px solid #0f3460; transition: border-color 0.3s; min-height: 300px; display: flex; flex-direction: column; }
+        .model-panel.winner { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
+        .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #0f3460; }
+        .model-name { font-size: 0.85rem; color: #e94560; font-weight: 600; word-break: break-all; }
+        .model-label { font-size: 0.75rem; color: #a0a0b0; background: #1a1a2e; padding: 3px 8px; border-radius: 4px; }
+        .question-box { flex: 1; background: #1a1a2e; border-radius: 8px; padding: 15px; margin-bottom: 15px; overflow-y: auto; max-height: 400px; }
+        .question-box h3 { color: #e94560; font-size: 0.9rem; margin-bottom: 10px; }
+        .question-text { color: #e0e0e0; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; }
+        .constraints-list { list-style: none; padding: 0; margin-top: 10px; }
+        .constraints-list li { padding: 6px 10px; margin: 4px 0; background: #0f3460; border-radius: 4px; font-size: 0.85rem; color: #c0c0d0; }
+        .constraints-list li::before { content: "\2022 "; color: #e94560; }
+        .short-code { display: inline-block; background: #e94560; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-top: 8px; }
+        .vote-btn { width: 100%; padding: 12px; margin-top: auto; }
+        .error-msg { color: #e74c3c; font-style: italic; padding: 20px; text-align: center; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: #a0a0b0; }
+        .loading .spinner { width: 24px; height: 24px; border: 3px solid #0f3460; border-top-color: #e94560; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .status-bar { text-align: center; padding: 10px; color: #a0a0b0; font-size: 0.85rem; }
+        .results-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; overflow-y: auto; }
+        .results-overlay.active { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; }
+        .results-card { background: #16213e; border-radius: 12px; padding: 30px; max-width: 800px; width: 100%; border: 2px solid #0f3460; }
+        .results-card h2 { color: #e94560; margin-bottom: 20px; text-align: center; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .results-table th { background: #0f3460; color: #e0e0e0; padding: 10px 12px; text-align: left; font-size: 0.85rem; }
+        .results-table td { padding: 10px 12px; border-bottom: 1px solid #0f3460; font-size: 0.85rem; }
+        .results-table tr:hover { background: #1a1a2e; }
+        .bar { height: 20px; background: #e94560; border-radius: 4px; transition: width 0.5s; min-width: 2px; }
+        .bar-container { background: #1a1a2e; border-radius: 4px; overflow: hidden; width: 100%; }
+        .close-btn { float: right; background: none; border: none; color: #a0a0b0; font-size: 1.5rem; cursor: pointer; }
+        .close-btn:hover { color: #e94560; }
+        .round-counter { display: inline-block; background: #0f3460; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+        .actions { display: flex; gap: 10px; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>&#9876;&#65039; Model Arena - LLD Question Generation</h1>
+        <p>Compare question generation quality across different AI models</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Difficulty</label>
+            <select id="difficulty">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Reasoning Ability</label>
+            <select id="reasoning">
+                <option value="None">None</option>
+                <option value="Minimal">Minimal</option>
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" id="generateBtn" onclick="generateRound()">&#127922; Generate Questions</button>
+            <button class="btn btn-warning" id="resultsBtn" onclick="showResults()" disabled>&#128202; Complete Analysis</button>
+            <button class="btn btn-secondary" onclick="resetAll()">&#128260; Reset</button>
+            <span class="round-counter" id="roundCounter">Rounds: 0</span>
+        </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">Select difficulty and reasoning, then click Generate to start comparing models.</div>
+
+    <div class="comparison-container" id="comparisonContainer">
+        <div class="model-panel" id="panelA">
+            <div class="model-header">
+                <span class="model-name" id="modelNameA">Model A</span>
+                <span class="model-label">LEFT</span>
+            </div>
+            <div class="question-box" id="questionBoxA">
+                <p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>
+            </div>
+            <button class="btn btn-success vote-btn" id="voteA" onclick="vote('A')" disabled>&#128077; Pick This One</button>
+        </div>
+        <div class="model-panel" id="panelB">
+            <div class="model-header">
+                <span class="model-name" id="modelNameB">Model B</span>
+                <span class="model-label">RIGHT</span>
+            </div>
+            <div class="question-box" id="questionBoxB">
+                <p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>
+            </div>
+            <button class="btn btn-success vote-btn" id="voteB" onclick="vote('B')" disabled>&#128077; Pick This One</button>
+        </div>
+    </div>
+
+    <div class="results-overlay" id="resultsOverlay">
+        <div class="results-card">
+            <button class="close-btn" onclick="hideResults()">&#10005;</button>
+            <h2>&#128202; Model Comparison Results</h2>
+            <p id="resultsSummary" style="text-align: center; color: #a0a0b0; margin-bottom: 15px;"></p>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Model</th>
+                        <th>Selected / Shown</th>
+                        <th>Win %</th>
+                        <th>Bar</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/ModelComparison';
+        let currentModelA = null;
+        let currentModelB = null;
+        let roundCount = 0;
+        let isGenerating = false;
+
+        async function generateRound() {
+            if (isGenerating) return;
+            isGenerating = true;
+
+            const generateBtn = document.getElementById('generateBtn');
+            const voteA = document.getElementById('voteA');
+            const voteB = document.getElementById('voteB');
+
+            generateBtn.disabled = true;
+            voteA.disabled = true;
+            voteB.disabled = true;
+
+            // Remove winner highlight
+            document.getElementById('panelA').classList.remove('winner');
+            document.getElementById('panelB').classList.remove('winner');
+
+            // Show loading
+            const loadingHtml = '<div class="loading"><div class="spinner"></div>Generating question...</div>';
+            document.getElementById('questionBoxA').innerHTML = loadingHtml;
+            document.getElementById('questionBoxB').innerHTML = loadingHtml;
+            document.getElementById('modelNameA').textContent = '...';
+            document.getElementById('modelNameB').textContent = '...';
+            document.getElementById('statusBar').textContent = 'Generating questions from two random models...';
+
+            try {
+                const difficulty = document.getElementById('difficulty').value;
+                const reasoning = document.getElementById('reasoning').value;
+
+                const response = await fetch(`${API_BASE}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ difficulty, reasoningEffort: reasoning })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                // Render Model A
+                currentModelA = data.modelA?.modelName;
+                currentModelB = data.modelB?.modelName;
+
+                document.getElementById('modelNameA').textContent = currentModelA || 'Unknown';
+                document.getElementById('modelNameB').textContent = currentModelB || 'Unknown';
+
+                renderQuestion('questionBoxA', data.modelA);
+                renderQuestion('questionBoxB', data.modelB);
+
+                // Enable voting only if both succeeded
+                const canVote = data.modelA?.isSuccess && data.modelB?.isSuccess;
+                voteA.disabled = !canVote;
+                voteB.disabled = !canVote;
+
+                document.getElementById('statusBar').textContent = canVote
+                    ? 'Review both questions and pick the best one!'
+                    : 'One or both models failed. Generate again.';
+
+            } catch (err) {
+                document.getElementById('questionBoxA').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+                document.getElementById('questionBoxB').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+                document.getElementById('statusBar').textContent = 'Error generating questions. Try again.';
+            } finally {
+                generateBtn.disabled = false;
+                isGenerating = false;
+            }
+        }
+
+        function renderQuestion(elementId, modelResult) {
+            const box = document.getElementById(elementId);
+
+            if (!modelResult || !modelResult.isSuccess) {
+                const errMsg = modelResult?.errorMessage || 'Failed to generate';
+                box.innerHTML = `<div class="error-msg">&#9888;&#65039; ${errMsg}</div>`;
+                return;
+            }
+
+            const q = modelResult.question;
+            if (!q) {
+                box.innerHTML = '<div class="error-msg">No question data returned.</div>';
+                return;
+            }
+
+            let html = `<h3>Question</h3><div class="question-text">${escapeHtml(q.question)}</div>`;
+
+            if (q.constraints && q.constraints.length > 0) {
+                html += '<h3 style="margin-top: 15px;">Constraints</h3><ul class="constraints-list">';
+                q.constraints.forEach(c => {
+                    html += `<li>${escapeHtml(c)}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if (q.shortCode || q.short_code) {
+                html += `<div style="margin-top: 10px;"><span class="short-code">${escapeHtml(q.shortCode || q.short_code)}</span></div>`;
+            }
+
+            box.innerHTML = html;
+        }
+
+        async function vote(choice) {
+            const winningModel = choice === 'A' ? currentModelA : currentModelB;
+            const losingModel = choice === 'A' ? currentModelB : currentModelA;
+
+            if (!winningModel || !losingModel) return;
+
+            document.getElementById('voteA').disabled = true;
+            document.getElementById('voteB').disabled = true;
+
+            // Highlight winner
+            const winPanel = choice === 'A' ? 'panelA' : 'panelB';
+            document.getElementById(winPanel).classList.add('winner');
+
+            try {
+                await fetch(`${API_BASE}/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ winningModel, losingModel })
+                });
+
+                roundCount++;
+                document.getElementById('roundCounter').textContent = `Rounds: ${roundCount}`;
+                document.getElementById('resultsBtn').disabled = false;
+                document.getElementById('statusBar').textContent = `\u2705 Vote recorded! ${winningModel} wins this round. Click Generate for next round.`;
+
+            } catch (err) {
+                document.getElementById('statusBar').textContent = 'Failed to record vote. Try again.';
+                document.getElementById('voteA').disabled = false;
+                document.getElementById('voteB').disabled = false;
+            }
+        }
+
+        async function showResults() {
+            try {
+                const response = await fetch(`${API_BASE}/results`);
+                const data = await response.json();
+
+                document.getElementById('resultsSummary').textContent = `Total rounds completed: ${data.totalRounds}`;
+
+                const tbody = document.getElementById('resultsBody');
+                tbody.innerHTML = '';
+
+                if (!data.scores || data.scores.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #a0a0b0;">No data yet. Complete some rounds first.</td></tr>';
+                } else {
+                    data.scores.forEach((score, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td style="font-weight: 600; color: ${index === 0 ? '#2ecc71' : '#e0e0e0'}">${escapeHtml(score.modelName)}</td>
+                            <td>${score.timesSelected} / ${score.timesShown}</td>
+                            <td style="font-weight: 600; color: #e94560;">${score.selectionPercentage}%</td>
+                            <td style="width: 200px;">
+                                <div class="bar-container">
+                                    <div class="bar" style="width: ${score.selectionPercentage}%"></div>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                document.getElementById('resultsOverlay').classList.add('active');
+
+            } catch (err) {
+                alert('Failed to load results: ' + err.message);
+            }
+        }
+
+        function hideResults() {
+            document.getElementById('resultsOverlay').classList.remove('active');
+        }
+
+        async function resetAll() {
+            if (!confirm('Reset all scores and history?')) return;
+
+            try {
+                await fetch(`${API_BASE}/reset`, { method: 'POST' });
+                roundCount = 0;
+                currentModelA = null;
+                currentModelB = null;
+                document.getElementById('roundCounter').textContent = 'Rounds: 0';
+                document.getElementById('resultsBtn').disabled = true;
+                document.getElementById('voteA').disabled = true;
+                document.getElementById('voteB').disabled = true;
+                document.getElementById('panelA').classList.remove('winner');
+                document.getElementById('panelB').classList.remove('winner');
+                document.getElementById('modelNameA').textContent = 'Model A';
+                document.getElementById('modelNameB').textContent = 'Model B';
+                document.getElementById('questionBoxA').innerHTML = '<p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>';
+                document.getElementById('questionBoxB').innerHTML = '<p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>';
+                document.getElementById('statusBar').textContent = 'All data reset. Start fresh!';
+            } catch (err) {
+                alert('Failed to reset: ' + err.message);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Close results overlay on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideResults();
+        });
+    </script>
+</body>
+</html>

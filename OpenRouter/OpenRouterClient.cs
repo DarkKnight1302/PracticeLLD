@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NewHorizonLib.Services;
 
 namespace PracticeLLD.OpenRouter;
@@ -19,16 +20,19 @@ public class OpenRouterClient : IOpenRouterClient
     private readonly string _apiKey;
     private readonly string _model;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    private readonly ILogger<OpenRouterClient> _logger;
 
     /// <summary>
     /// Initializes a new instance of the OpenRouterClient.
     /// </summary>
     /// <param name="secretService">The secret service to retrieve the API key.</param>
     /// <param name="model">The model to use (e.g., "openai/o4-mini"). Defaults to "openai/o4-mini".</param>
-    public OpenRouterClient(ISecretService secretService)
+    public OpenRouterClient(ISecretService secretService, ILogger<OpenRouterClient> logger)
     {
         ArgumentNullException.ThrowIfNull(secretService);
 
+        _logger = logger;
         _apiKey = secretService.GetSecretValue(ApiKeySecretName);
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
@@ -137,6 +141,77 @@ public class OpenRouterClient : IOpenRouterClient
         return typedResult;
     }
 
+    /// <inheritdoc />
+    public async Task<OpenRouterResult<T>> SendPromptJsonAsync<T>(
+        string model,
+        string userPrompt,
+        object jsonSchema,
+        string schemaName = "response",
+        string? systemPrompt = null,
+        string? assistantPrompt = null,
+        double? temperature = null,
+        ReasoningEffort reasoningEffort = ReasoningEffort.None,
+        int? maxOutputTokens = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Models like Gemma don't support the "system" role; merge into user prompt
+        if (!string.IsNullOrEmpty(systemPrompt) && RequiresSystemPromptMerge(model))
+        {
+            userPrompt = $"{systemPrompt}\n\n{userPrompt}";
+            systemPrompt = null;
+        }
+
+        var messages = BuildMessages(userPrompt, systemPrompt, assistantPrompt);
+
+        var jsonFormat = new TextResponseFormat
+        {
+            Format = new ResponseFormat
+            {
+                Type = "json_schema",
+                Name = schemaName,
+                Schema = jsonSchema,
+                Strict = true
+            }
+        };
+
+        var request = BuildRequest(messages, temperature, reasoningEffort, maxOutputTokens, jsonFormat, model);
+        var result = await ExecuteRequestAsync(request, cancellationToken);
+
+        var typedResult = new OpenRouterResult<T>
+        {
+            IsSuccess = result.IsSuccess,
+            TextResponse = result.TextResponse,
+            RawResponse = result.RawResponse,
+            ErrorMessage = result.ErrorMessage,
+            Usage = result.Usage,
+            ReasoningSummary = result.ReasoningSummary
+        };
+
+        if (result.IsSuccess && !string.IsNullOrEmpty(result.TextResponse))
+        {
+            try
+            {
+                typedResult.Data = JsonSerializer.Deserialize<T>(result.TextResponse, _jsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                typedResult.IsSuccess = false;
+                typedResult.ErrorMessage = $"Failed to deserialize JSON response: {ex.Message}";
+            }
+        }
+
+        return typedResult;
+    }
+
+    /// <summary>
+    /// Determines whether the given model requires the system prompt to be merged
+    /// into the user prompt because it does not support the "system" message role.
+    /// </summary>
+    private static bool RequiresSystemPromptMerge(string model)
+    {
+        return model.StartsWith("google/gemma-", StringComparison.OrdinalIgnoreCase);
+    }
+
     private List<MessageInput> BuildMessages(string userPrompt, string? systemPrompt, string? assistantPrompt)
     {
         var messages = new List<MessageInput>();
@@ -197,23 +272,25 @@ public class OpenRouterClient : IOpenRouterClient
         double? temperature,
         ReasoningEffort reasoningEffort,
         int? maxOutputTokens,
-        TextResponseFormat? jsonFormat)
+        TextResponseFormat? jsonFormat,
+        string? modelOverride = null)
     {
         var request = new OpenRouterRequest
         {
-            Model = _model,
+            Model = modelOverride ?? _model,
             Input = messages,
             Temperature = temperature,
             MaxOutputTokens = maxOutputTokens,
-            Text = jsonFormat
+            Text = jsonFormat,
+            Reasoning = new ReasoningConfig
+            {
+                Enabled = true
+            }
         };
 
         if (reasoningEffort != ReasoningEffort.None)
         {
-            request.Reasoning = new ReasoningConfig
-            {
-                Effort = reasoningEffort.ToString().ToLowerInvariant()
-            };
+            request.Reasoning.Effort = reasoningEffort.ToString().ToLowerInvariant();
         }
 
         return request;
@@ -223,7 +300,11 @@ public class OpenRouterClient : IOpenRouterClient
     {
         try
         {
+            await semaphoreSlim.WaitAsync(cancellationToken);
             var json = JsonSerializer.Serialize(request, _jsonOptions);
+
+            _logger.LogInformation("OpenRouter Request [{Model}]: {RequestBody}", request.Model, json);
+
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, BaseUrl)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -233,6 +314,9 @@ public class OpenRouterClient : IOpenRouterClient
 
             using var httpResponse = await _httpClient.SendAsync(httpRequest, cancellationToken);
             var responseContent = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+
+            _logger.LogInformation("OpenRouter Response [{Model}] (HTTP {StatusCode}): {ResponseBody}",
+                request.Model, (int)httpResponse.StatusCode, responseContent);
 
             var response = JsonSerializer.Deserialize<OpenRouterResponse>(responseContent, _jsonOptions);
 
@@ -291,6 +375,11 @@ public class OpenRouterClient : IOpenRouterClient
                 IsSuccess = false,
                 ErrorMessage = "Request was cancelled"
             };
+        }
+        finally
+        {
+            Task.Delay(2000);
+            semaphoreSlim.Release();
         }
     }
 

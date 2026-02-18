@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using PracticeLLD.OpenRouter.Completion;
 
 namespace PracticeLLD.OpenRouter;
 
@@ -8,19 +10,32 @@ namespace PracticeLLD.OpenRouter;
 public static class OpenRouterServiceExtensions
 {
     /// <summary>
-    /// Adds the OpenRouter client as a singleton to the service collection.
-    /// The API key is retrieved from ISecretService using the key "OpenRouterApiKey".
+    /// Adds the OpenRouter Responses API client as a singleton to the service collection.
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="model">The model to use (e.g., "openai/o4-mini"). Defaults to "openai/o4-mini".</param>
-    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddOpenRouterClient(
         this IServiceCollection services)
     {
         services.AddSingleton<IOpenRouterClient>(sp =>
         {
             var secretService = sp.GetRequiredService<NewHorizonLib.Services.ISecretService>();
-            return new OpenRouterClient(secretService);
+            var logger = sp.GetRequiredService<ILogger<OpenRouterClient>>();
+            return new OpenRouterClient(secretService, logger);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the OpenRouter Chat Completions API client as a singleton to the service collection.
+    /// </summary>
+    public static IServiceCollection AddOpenRouterCompletionClient(
+        this IServiceCollection services)
+    {
+        services.AddSingleton<IOpenRouterCompletionClient>(sp =>
+        {
+            var secretService = sp.GetRequiredService<NewHorizonLib.Services.ISecretService>();
+            var logger = sp.GetRequiredService<ILogger<OpenRouterCompletionClient>>();
+            return new OpenRouterCompletionClient(secretService, logger);
         });
 
         return services;
@@ -28,11 +43,7 @@ public static class OpenRouterServiceExtensions
 
     /// <summary>
     /// Adds the OpenRouter client as a singleton to the service collection using a configuration action.
-    /// The API key is retrieved from ISecretService using the key "OpenRouterApiKey".
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configure">Action to configure the OpenRouter options.</param>
-    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddOpenRouterClient(
         this IServiceCollection services,
         Action<OpenRouterOptions> configure)

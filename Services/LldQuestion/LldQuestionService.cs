@@ -1,13 +1,14 @@
 using PracticeLLD.OpenRouter;
+using PracticeLLD.OpenRouter.Completion;
 
 namespace PracticeLLD.Services.LldQuestion;
 
 /// <summary>
-/// Service for generating LLD interview questions using the OpenRouter API.
+/// Service for generating LLD interview questions using the OpenRouter Chat Completions API.
 /// </summary>
 public class LldQuestionService : ILldQuestionService
 {
-    private readonly IOpenRouterClient _openRouterClient;
+    private readonly IOpenRouterCompletionClient _completionClient;
 
     private static readonly object JsonSchema = new
     {
@@ -21,15 +22,15 @@ public class LldQuestionService : ILldQuestionService
                 items = new { type = "string" },
                 description = "List of constraints or requirements for the question."
             },
-            short_code = new { type = "string", description = "A unique short code identifier for the question (e.g., PARKING_LOT, ELEVATOR_SYSTEM)." }
+            short_code = new { type = "string", description = "A unique short code identifier for the question." }
         },
         required = new[] { "question", "constraints", "short_code" },
         additionalProperties = false
     };
 
-    public LldQuestionService(IOpenRouterClient openRouterClient)
+    public LldQuestionService(IOpenRouterCompletionClient completionClient)
     {
-        _openRouterClient = openRouterClient;
+        _completionClient = completionClient;
     }
 
     /// <inheritdoc />
@@ -41,7 +42,7 @@ public class LldQuestionService : ILldQuestionService
         var systemPrompt = BuildSystemPrompt(difficulty);
         var userPrompt = BuildUserPrompt(alreadyAskedShortCodes);
 
-        var result = await _openRouterClient.SendPromptJsonAsync<LldQuestionResponse>(
+        var result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
             userPrompt: userPrompt,
             jsonSchema: JsonSchema,
             schemaName: "lld_question",
@@ -75,7 +76,7 @@ public class LldQuestionService : ILldQuestionService
             Guidelines:
             - The question should require the candidate to design classes, interfaces, and their relationships.
             - Include clear constraints that define the scope of the problem.
-            - The short_code should be a concise uppercase identifier using underscores (e.g., PARKING_LOT, ELEVATOR_SYSTEM, CHESS_GAME).
+            - The short_code should be a concise uppercase identifier that reflects the core concept of the question.
             - You should NOT ask any question whose short code matches one from the already asked list provided by the user.
             - Make sure the question is practical and commonly asked in real interviews.
             """;

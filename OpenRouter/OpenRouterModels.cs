@@ -47,7 +47,12 @@ public class OpenRouterRequest
 public class ReasoningConfig
 {
     [JsonPropertyName("effort")]
-    public required string Effort { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Effort { get; set; }
+
+    [JsonPropertyName("enabled")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Enabled { get; set; }
 }
 
 /// <summary>

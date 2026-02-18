@@ -86,4 +86,31 @@ public interface IOpenRouterClient
         ReasoningEffort reasoningEffort = ReasoningEffort.None,
         int? maxOutputTokens = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a prompt to the OpenRouter API using a specific model and returns a JSON response deserialized to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the JSON response to.</typeparam>
+    /// <param name="model">The model to use for the request.</param>
+    /// <param name="userPrompt">The user's prompt.</param>
+    /// <param name="jsonSchema">The JSON schema for the expected response format.</param>
+    /// <param name="schemaName">The name of the schema. Default is "response".</param>
+    /// <param name="systemPrompt">Optional system prompt to set context.</param>
+    /// <param name="assistantPrompt">Optional assistant prompt for conversation context.</param>
+    /// <param name="temperature">Sampling temperature (0-2). Default is null (uses API default).</param>
+    /// <param name="reasoningEffort">The reasoning effort level. Default is None.</param>
+    /// <param name="maxOutputTokens">Maximum tokens to generate. Default is null.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The result containing the deserialized response.</returns>
+    Task<OpenRouterResult<T>> SendPromptJsonAsync<T>(
+        string model,
+        string userPrompt,
+        object jsonSchema,
+        string schemaName = "response",
+        string? systemPrompt = null,
+        string? assistantPrompt = null,
+        double? temperature = null,
+        ReasoningEffort reasoningEffort = ReasoningEffort.None,
+        int? maxOutputTokens = null,
+        CancellationToken cancellationToken = default);
 }
