@@ -195,15 +195,21 @@
                 renderQuestion('questionBoxA', data.modelA);
                 renderQuestion('questionBoxB', data.modelB);
 
-                // Enable voting only if both succeeded
-                const canVote = data.modelA?.isSuccess && data.modelB?.isSuccess;
-                voteA.disabled = !canVote;
-                voteB.disabled = !canVote;
+                // Enable voting if at least one model succeeded
+                const bothSucceeded = data.modelA?.isSuccess && data.modelB?.isSuccess;
+                const aSuccess = data.modelA?.isSuccess === true;
+                const bSuccess = data.modelB?.isSuccess === true;
 
-                document.getElementById('statusBar').textContent = canVote
-                    ? 'Review both questions and pick the best one!'
-                    : 'One or both models failed. Generate again.';
+                voteA.disabled = !aSuccess;
+                voteB.disabled = !bSuccess;
 
+                if (bothSucceeded) {
+                    document.getElementById('statusBar').textContent = 'Review both questions and pick the best one!';
+                } else if (aSuccess || bSuccess) {
+                    document.getElementById('statusBar').textContent = 'One model failed. You can vote for the successful one, or generate again.';
+                } else {
+                    document.getElementById('statusBar').textContent = 'Both models failed. Generate again.';
+                }
             } catch (err) {
                 document.getElementById('questionBoxA').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
                 document.getElementById('questionBoxB').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;

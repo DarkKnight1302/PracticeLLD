@@ -1,9 +1,30 @@
 using System.Collections.Concurrent;
+using PracticeLLD.Groq;
 using PracticeLLD.OpenRouter;
 using PracticeLLD.OpenRouter.Completion;
 using PracticeLLD.Services.LldQuestion;
 
 namespace PracticeLLD.Services.ModelComparison;
+
+/// <summary>
+/// Identifies which API provider a model belongs to.
+/// </summary>
+public enum ModelProvider
+{
+    OpenRouter,
+    Groq
+}
+
+/// <summary>
+/// Represents a model available for comparison, along with its provider.
+/// </summary>
+public record ModelEntry(string ModelId, ModelProvider Provider)
+{
+    /// <summary>
+    /// Display name including provider prefix for clarity.
+    /// </summary>
+    public string DisplayName => $"[{Provider}] {ModelId}";
+}
 
 /// <summary>
 /// Service for comparative analysis of LLD question generation across different models.
@@ -13,59 +34,37 @@ public class ModelComparisonService : IModelComparisonService
 {
     private readonly IOpenRouterCompletionClient _completionClient;
     private readonly IOpenRouterClient _responsesClient;
+    private readonly IGroqCompletionClient _groqClient;
     private readonly Random _random = new();
 
-    // Models that must use the Responses API (/api/v1/responses) instead of Chat Completions.
-    private static readonly HashSet<string> ResponsesApiModels = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "openai/gpt-oss-120b:free"
-    };
-
-    private static readonly List<string> Models =
+    private static readonly List<ModelEntry> Models =
     [
-        "openrouter/aurora-alpha",
-        //"sourceful/riverflow-v2-pro",
-        //"sourceful/riverflow-v2-fast",
-        //"stepfun/step-3.5-flash:free",
-        "arcee-ai/trinity-large-preview:free",
-        //"liquid/lfm-2.5-1.2b-thinking:free",
-        //"liquid/lfm-2.5-1.2b-instruct:free",
-        "nvidia/nemotron-3-nano-30b-a3b:free",
-        //"sourceful/riverflow-v2-max-preview",
-        //"sourceful/riverflow-v2-standard-preview",        
-        //"sourceful/riverflow-v2-fast-preview", Need credits
-        "arcee-ai/trinity-mini:free",
-        "nvidia/nemotron-nano-12b-v2-vl:free",
-        //"qwen/qwen3-next-80b-a3b-instruct:free",`
-        "nvidia/nemotron-nano-9b-v2:free",
-        "openai/gpt-oss-120b:free",
-        //"openai/gpt-oss-20b:free",
-        //"z-ai/glm-4.5-air:free",
-       //"qwen/qwen3-235b-a22b-thinking-2507",
-        //"qwen/qwen3-coder:free",
-        //"cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
-        //"google/gemma-3n-e2b-it:free",
-        "deepseek/deepseek-r1-0528:free",
-        //"google/gemma-3n-e4b-it:free",
-        //"qwen/qwen3-4b:free",
-        //"mistralai/mistral-small-3.1-24b-instruct:free",
-        //"google/gemma-3-4b-it:free",
-        //"google/gemma-3-12b-it:free",
-        //"google/gemma-3-27b-it:free",
-        //"meta-llama/llama-3.3-70b-instruct:free",
-        //"meta-llama/llama-3.2-3b-instruct:free",
-        //"nousresearch/hermes-3-llama-3.1-405b:free"
+        // OpenRouter models
+        //new("openrouter/aurora-alpha", ModelProvider.OpenRouter),
+        //new("arcee-ai/trinity-large-preview:free", ModelProvider.OpenRouter),
+        new("nvidia/nemotron-3-nano-30b-a3b:free", ModelProvider.OpenRouter),
+        new("arcee-ai/trinity-mini:free", ModelProvider.OpenRouter),
+        //new("nvidia/nemotron-nano-12b-v2-vl:free", ModelProvider.OpenRouter),
+        new("nvidia/nemotron-nano-9b-v2:free", ModelProvider.OpenRouter),
+
+        // Groq models
+        //new("meta-llama/llama-4-scout-17b-16e-instruct", ModelProvider.Groq),
+        //new("meta-llama/llama-4-maverick-17b-128e-instruct", ModelProvider.Groq),
+        //new("openai/gpt-oss-20b", ModelProvider.Groq),
+        new("openai/gpt-oss-120b", ModelProvider.Groq),
+        new("moonshotai/kimi-k2-instruct-0905", ModelProvider.Groq),
+        new("moonshotai/kimi-k2-instruct", ModelProvider.Groq),
     ];
 
     /// <summary>
     /// In-memory dictionary of short codes returned by each model.
-    /// Key: model name, Value: list of short codes.
+    /// Key: model display name, Value: list of short codes.
     /// </summary>
     private readonly ConcurrentDictionary<string, List<string>> _modelShortCodes = new();
 
     /// <summary>
     /// Tracks how many times each model was shown and selected.
-    /// Key: model name, Value: (timesShown, timesSelected).
+    /// Key: model display name, Value: (timesShown, timesSelected).
     /// </summary>
     private readonly ConcurrentDictionary<string, (int TimesShown, int TimesSelected)> _modelScores = new();
 
@@ -89,10 +88,14 @@ public class ModelComparisonService : IModelComparisonService
         additionalProperties = false
     };
 
-    public ModelComparisonService(IOpenRouterCompletionClient completionClient, IOpenRouterClient responsesClient)
+    public ModelComparisonService(
+        IOpenRouterCompletionClient completionClient,
+        IOpenRouterClient responsesClient,
+        IGroqCompletionClient groqClient)
     {
         _completionClient = completionClient;
         _responsesClient = responsesClient;
+        _groqClient = groqClient;
     }
 
     public async Task<ComparisonRoundResult> GenerateComparisonRoundAsync(
@@ -100,27 +103,26 @@ public class ModelComparisonService : IModelComparisonService
         ReasoningEffort reasoningEffort,
         CancellationToken cancellationToken = default)
     {
-        var (modelA, modelB) = PickTwoRandomModels();
+        var (entryA, entryB) = PickTwoRandomModels();
 
-        var resultA = await GenerateFromModelAsync(modelA, difficulty, reasoningEffort, cancellationToken);
-        var resultB = await GenerateFromModelAsync(modelB, difficulty, reasoningEffort, cancellationToken);
-
+        var resultA = await GenerateFromModelAsync(entryA, difficulty, reasoningEffort, cancellationToken);
+        var resultB = await GenerateFromModelAsync(entryB, difficulty, reasoningEffort, cancellationToken);
 
         // Track short codes for successful responses
         if (resultA.IsSuccess && resultA.Question != null)
         {
-            AddShortCode(modelA, resultA.Question.ShortCode);
+            AddShortCode(entryA.DisplayName, resultA.Question.ShortCode);
         }
         if (resultB.IsSuccess && resultB.Question != null)
         {
-            AddShortCode(modelB, resultB.Question.ShortCode);
+            AddShortCode(entryB.DisplayName, resultB.Question.ShortCode);
         }
 
         return new ComparisonRoundResult
         {
             IsSuccess = resultA.IsSuccess || resultB.IsSuccess,
             ErrorMessage = (!resultA.IsSuccess && !resultB.IsSuccess)
-                ? $"Both models failed. Model A ({modelA}): {resultA.ErrorMessage}; Model B ({modelB}): {resultB.ErrorMessage}"
+                ? $"Both models failed. Model A ({entryA.DisplayName}): {resultA.ErrorMessage}; Model B ({entryB.DisplayName}): {resultB.ErrorMessage}"
                 : null,
             ModelA = resultA,
             ModelB = resultB
@@ -169,82 +171,80 @@ public class ModelComparisonService : IModelComparisonService
         Interlocked.Exchange(ref _totalRounds, 0);
     }
 
-    public List<string> GetAvailableModels() => [.. Models];
+    public List<string> GetAvailableModels() => Models.Select(m => m.DisplayName).ToList();
 
-    private (string ModelA, string ModelB) PickTwoRandomModels()
+    private (ModelEntry EntryA, ModelEntry EntryB) PickTwoRandomModels()
     {
         var shuffled = Models.OrderBy(_ => _random.Next()).ToList();
         return (shuffled[0], shuffled[1]);
     }
 
     private async Task<ModelQuestionResult> GenerateFromModelAsync(
-        string model,
+        ModelEntry entry,
         DifficultyLevel difficulty,
         ReasoningEffort reasoningEffort,
         CancellationToken cancellationToken)
     {
         try
         {
-            var shortCodes = GetShortCodes(model);
+            var shortCodes = GetShortCodes(entry.DisplayName);
             var systemPrompt = BuildSystemPrompt(difficulty);
             var userPrompt = BuildUserPrompt(shortCodes);
 
-            if (ResponsesApiModels.Contains(model))
+            CompletionResult<LldQuestionResponse> result;
+
+            switch (entry.Provider)
             {
-                var result = await _responsesClient.SendPromptJsonAsync<LldQuestionResponse>(
-                    model: model,
-                    userPrompt: userPrompt,
-                    jsonSchema: JsonSchema,
-                    schemaName: "lld_question",
-                    systemPrompt: systemPrompt,
-                    temperature: 0.9,
-                    reasoningEffort: reasoningEffort,
-                    cancellationToken: cancellationToken);
+                case ModelProvider.Groq:
+                    result = await _groqClient.SendPromptJsonAsync<LldQuestionResponse>(
+                        model: entry.ModelId,
+                        userPrompt: userPrompt,
+                        jsonSchema: JsonSchema,
+                        schemaName: "lld_question",
+                        systemPrompt: systemPrompt,
+                        temperature: 0.9,
+                        reasoningEffort: reasoningEffort,
+                        cancellationToken: cancellationToken);
+                    break;
 
-                if (!result.IsSuccess)
-                {
-                    return new ModelQuestionResult { ModelName = model, IsSuccess = false, ErrorMessage = result.ErrorMessage };
-                }
-
-                return new ModelQuestionResult { ModelName = model, IsSuccess = true, Question = result.Data };
+                case ModelProvider.OpenRouter:
+                default:
+                    result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
+                        model: entry.ModelId,
+                        userPrompt: userPrompt,
+                        jsonSchema: JsonSchema,
+                        schemaName: "lld_question",
+                        systemPrompt: systemPrompt,
+                        temperature: 0.9,
+                        reasoningEffort: reasoningEffort,
+                        cancellationToken: cancellationToken);
+                    break;
             }
-            else
+
+            if (!result.IsSuccess)
             {
-                var result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
-                    model: model,
-                    userPrompt: userPrompt,
-                    jsonSchema: JsonSchema,
-                    schemaName: "lld_question",
-                    systemPrompt: systemPrompt,
-                    temperature: 0.9,
-                    reasoningEffort: reasoningEffort,
-                    cancellationToken: cancellationToken);
-
-                if (!result.IsSuccess)
-                {
-                    return new ModelQuestionResult { ModelName = model, IsSuccess = false, ErrorMessage = result.ErrorMessage };
-                }
-
-                return new ModelQuestionResult { ModelName = model, IsSuccess = true, Question = result.Data };
+                return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = false, ErrorMessage = result.ErrorMessage };
             }
+
+            return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = true, Question = result.Data };
         }
         catch (Exception ex)
         {
-            return new ModelQuestionResult { ModelName = model, IsSuccess = false, ErrorMessage = ex.Message };
+            return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = false, ErrorMessage = ex.Message };
         }
     }
 
-    private List<string> GetShortCodes(string model)
+    private List<string> GetShortCodes(string modelDisplayName)
     {
-        return _modelShortCodes.TryGetValue(model, out var codes) ? [.. codes] : [];
+        return _modelShortCodes.TryGetValue(modelDisplayName, out var codes) ? [.. codes] : [];
     }
 
-    private void AddShortCode(string model, string shortCode)
+    private void AddShortCode(string modelDisplayName, string shortCode)
     {
         if (string.IsNullOrEmpty(shortCode)) return;
 
         _modelShortCodes.AddOrUpdate(
-            model,
+            modelDisplayName,
             [shortCode],
             (_, existing) =>
             {

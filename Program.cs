@@ -1,5 +1,6 @@
 using NewHorizonLib;
 using PracticeLLD.Constants;
+using PracticeLLD.Groq;
 using PracticeLLD.OpenRouter;
 using PracticeLLD.Services.LldQuestion;
 using PracticeLLD.Services.ModelComparison;
@@ -16,6 +17,9 @@ builder.Services.AddOpenRouterClient();
 
 // Register OpenRouter Chat Completions API client
 builder.Services.AddOpenRouterCompletionClient();
+
+// Register Groq Chat Completions API client
+builder.Services.AddGroqCompletionClient();
 
 // Register LLD Question generation service
 builder.Services.AddSingleton<ILldQuestionService, LldQuestionService>();
