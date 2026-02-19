@@ -43,7 +43,6 @@ public class ModelComparisonService : IModelComparisonService
         //new("openrouter/aurora-alpha", ModelProvider.OpenRouter),
         //new("arcee-ai/trinity-large-preview:free", ModelProvider.OpenRouter),
         new("nvidia/nemotron-3-nano-30b-a3b:free", ModelProvider.OpenRouter),
-        new("arcee-ai/trinity-mini:free", ModelProvider.OpenRouter),
         //new("nvidia/nemotron-nano-12b-v2-vl:free", ModelProvider.OpenRouter),
         new("nvidia/nemotron-nano-9b-v2:free", ModelProvider.OpenRouter),
 
