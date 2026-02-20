@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
-using PracticeLLD.Groq;
 using PracticeLLD.OpenRouter;
-using PracticeLLD.OpenRouter.Completion;
 using PracticeLLD.Services.LldQuestion;
 
 namespace PracticeLLD.Services.ModelComparison;
@@ -32,20 +30,11 @@ public record ModelEntry(string ModelId, ModelProvider Provider)
 /// </summary>
 public class ModelComparisonService : IModelComparisonService
 {
-    private readonly IOpenRouterCompletionClient _completionClient;
-    private readonly IOpenRouterClient _responsesClient;
-    private readonly IGroqCompletionClient _groqClient;
+    private readonly ILldQuestionService _lldQuestionService;
     private readonly Random _random = new();
 
     private static readonly List<ModelEntry> Models =
     [
-        // OpenRouter models
-        //new("openrouter/aurora-alpha", ModelProvider.OpenRouter),
-        //new("arcee-ai/trinity-large-preview:free", ModelProvider.OpenRouter),
-        new("nvidia/nemotron-3-nano-30b-a3b:free", ModelProvider.OpenRouter),
-        //new("nvidia/nemotron-nano-12b-v2-vl:free", ModelProvider.OpenRouter),
-        new("nvidia/nemotron-nano-9b-v2:free", ModelProvider.OpenRouter),
-
         // Groq models
         //new("meta-llama/llama-4-scout-17b-16e-instruct", ModelProvider.Groq),
         //new("meta-llama/llama-4-maverick-17b-128e-instruct", ModelProvider.Groq),
@@ -56,10 +45,10 @@ public class ModelComparisonService : IModelComparisonService
     ];
 
     /// <summary>
-    /// In-memory dictionary of short codes returned by each model.
-    /// Key: model display name, Value: list of short codes.
+    /// In-memory dictionary of short titles returned by each model.
+    /// Key: model display name, Value: list of short titles.
     /// </summary>
-    private readonly ConcurrentDictionary<string, List<string>> _modelShortCodes = new();
+    private readonly ConcurrentDictionary<string, List<string>> _modelShortTitles = new();
 
     /// <summary>
     /// Tracks how many times each model was shown and selected.
@@ -69,32 +58,9 @@ public class ModelComparisonService : IModelComparisonService
 
     private int _totalRounds;
 
-    private static readonly object JsonSchema = new
+    public ModelComparisonService(ILldQuestionService lldQuestionService)
     {
-        type = "object",
-        properties = new
-        {
-            question = new { type = "string", description = "The full LLD interview question text." },
-            constraints = new
-            {
-                type = "array",
-                items = new { type = "string" },
-                description = "List of constraints or requirements for the question."
-            },
-            short_code = new { type = "string", description = "A unique short code identifier for the question." }
-        },
-        required = new[] { "question", "constraints", "short_code" },
-        additionalProperties = false
-    };
-
-    public ModelComparisonService(
-        IOpenRouterCompletionClient completionClient,
-        IOpenRouterClient responsesClient,
-        IGroqCompletionClient groqClient)
-    {
-        _completionClient = completionClient;
-        _responsesClient = responsesClient;
-        _groqClient = groqClient;
+        _lldQuestionService = lldQuestionService;
     }
 
     public async Task<ComparisonRoundResult> GenerateComparisonRoundAsync(
@@ -107,14 +73,14 @@ public class ModelComparisonService : IModelComparisonService
         var resultA = await GenerateFromModelAsync(entryA, difficulty, reasoningEffort, cancellationToken);
         var resultB = await GenerateFromModelAsync(entryB, difficulty, reasoningEffort, cancellationToken);
 
-        // Track short codes for successful responses
+        // Track short titles for successful responses
         if (resultA.IsSuccess && resultA.Question != null)
         {
-            AddShortCode(entryA.DisplayName, resultA.Question.ShortCode);
+            AddShortTitle(entryA.DisplayName, resultA.Question.ShortTitle);
         }
         if (resultB.IsSuccess && resultB.Question != null)
         {
-            AddShortCode(entryB.DisplayName, resultB.Question.ShortCode);
+            AddShortTitle(entryB.DisplayName, resultB.Question.ShortTitle);
         }
 
         return new ComparisonRoundResult
@@ -165,7 +131,7 @@ public class ModelComparisonService : IModelComparisonService
 
     public void Reset()
     {
-        _modelShortCodes.Clear();
+        _modelShortTitles.Clear();
         _modelScores.Clear();
         Interlocked.Exchange(ref _totalRounds, 0);
     }
@@ -186,46 +152,22 @@ public class ModelComparisonService : IModelComparisonService
     {
         try
         {
-            var shortCodes = GetShortCodes(entry.DisplayName);
-            var systemPrompt = BuildSystemPrompt(difficulty);
-            var userPrompt = BuildUserPrompt(shortCodes);
+            var shortTitles = GetShortTitles(entry.DisplayName);
 
-            CompletionResult<LldQuestionResponse> result;
+            var lldResult = await _lldQuestionService.GenerateQuestionAsync(
+                modelId: entry.ModelId,
+                provider: entry.Provider,
+                difficulty: difficulty,
+                reasoningEffort: reasoningEffort,
+                alreadyAskedShortTitles: shortTitles,
+                cancellationToken: cancellationToken);
 
-            switch (entry.Provider)
+            if (!lldResult.IsSuccess)
             {
-                case ModelProvider.Groq:
-                    result = await _groqClient.SendPromptJsonAsync<LldQuestionResponse>(
-                        model: entry.ModelId,
-                        userPrompt: userPrompt,
-                        jsonSchema: JsonSchema,
-                        schemaName: "lld_question",
-                        systemPrompt: systemPrompt,
-                        temperature: 0.9,
-                        reasoningEffort: reasoningEffort,
-                        cancellationToken: cancellationToken);
-                    break;
-
-                case ModelProvider.OpenRouter:
-                default:
-                    result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
-                        model: entry.ModelId,
-                        userPrompt: userPrompt,
-                        jsonSchema: JsonSchema,
-                        schemaName: "lld_question",
-                        systemPrompt: systemPrompt,
-                        temperature: 0.9,
-                        reasoningEffort: reasoningEffort,
-                        cancellationToken: cancellationToken);
-                    break;
+                return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = false, ErrorMessage = lldResult.ErrorMessage };
             }
 
-            if (!result.IsSuccess)
-            {
-                return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = false, ErrorMessage = result.ErrorMessage };
-            }
-
-            return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = true, Question = result.Data };
+            return new ModelQuestionResult { ModelName = entry.DisplayName, IsSuccess = true, Question = lldResult.Question };
         }
         catch (Exception ex)
         {
@@ -233,54 +175,28 @@ public class ModelComparisonService : IModelComparisonService
         }
     }
 
-    private List<string> GetShortCodes(string modelDisplayName)
+    private List<string> GetShortTitles(string modelDisplayName)
     {
-        return _modelShortCodes.TryGetValue(modelDisplayName, out var codes) ? [.. codes] : [];
+        return _modelShortTitles.TryGetValue(modelDisplayName, out var titles) ? [.. titles] : [];
     }
 
-    private void AddShortCode(string modelDisplayName, string shortCode)
+    private void AddShortTitle(string modelDisplayName, string shortTitle)
     {
-        if (string.IsNullOrEmpty(shortCode)) return;
+        if (string.IsNullOrEmpty(shortTitle)) return;
 
-        _modelShortCodes.AddOrUpdate(
+        _modelShortTitles.AddOrUpdate(
             modelDisplayName,
-            [shortCode],
+            [shortTitle],
             (_, existing) =>
             {
                 lock (existing)
                 {
-                    if (!existing.Contains(shortCode))
+                    if (!existing.Contains(shortTitle))
                     {
-                        existing.Add(shortCode);
+                        existing.Add(shortTitle);
                     }
                 }
                 return existing;
             });
-    }
-
-    private static string BuildSystemPrompt(DifficultyLevel difficulty)
-    {
-        return $"""
-            You are an experienced software engineering interviewer specializing in Low Level Design (LLD) questions.
-            Your task is to ask a Low Level Design question for a software engineering interview of {difficulty.ToString().ToLowerInvariant()} difficulty.
-            
-            Guidelines:
-            - The question should require the candidate to design classes, interfaces, and their relationships.
-            - Include clear constraints that define the scope of the problem.
-            - The short_code should be a concise uppercase identifier that reflects the core concept of the question.
-            - You should NOT ask any question whose short code matches one from the already asked list provided by the user.
-            - Make sure the question is practical and commonly asked in real interviews.
-            """;
-    }
-
-    private static string BuildUserPrompt(List<string>? alreadyAskedShortCodes)
-    {
-        if (alreadyAskedShortCodes == null || alreadyAskedShortCodes.Count == 0)
-        {
-            return "No questions have been asked yet. Generate a new LLD interview question.";
-        }
-
-        var codes = string.Join(", ", alreadyAskedShortCodes);
-        return $"Already asked questions (short codes): {codes}. Generate a new LLD interview question that is different from the ones listed.";
     }
 }

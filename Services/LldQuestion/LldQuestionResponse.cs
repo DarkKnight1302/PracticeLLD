@@ -20,8 +20,8 @@ public class LldQuestionResponse
     public List<string> Constraints { get; set; } = [];
 
     /// <summary>
-    /// A short code/identifier for the question (used to track already asked questions).
+    /// A short identifier for the question (used to track already asked questions).
     /// </summary>
-    [JsonPropertyName("short_code")]
-    public string ShortCode { get; set; } = string.Empty;
+    [JsonPropertyName("short_title")]
+    public string ShortTitle { get; set; } = string.Empty;
 }

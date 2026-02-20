@@ -25,6 +25,9 @@
         .btn-success:hover { background: #27ae60; }
         .btn-warning { background: #f39c12; color: white; }
         .btn-warning:hover { background: #e67e22; }
+        .btn-copy { background: #1a4a80; color: #e0e0e0; font-size: 0.78rem; padding: 4px 10px; border-radius: 4px; border: 1px solid #0f3460; cursor: pointer; transition: all 0.2s; }
+        .btn-copy:hover { background: #e94560; color: white; border-color: #e94560; }
+        .btn-copy:disabled { opacity: 0.4; cursor: not-allowed; }
         .comparison-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
         .model-panel { background: #16213e; border-radius: 10px; padding: 20px; border: 2px solid #0f3460; transition: border-color 0.3s; min-height: 300px; display: flex; flex-direction: column; }
         .model-panel.winner { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
@@ -99,7 +102,10 @@
         <div class="model-panel" id="panelA">
             <div class="model-header">
                 <span class="model-name" id="modelNameA">Model A</span>
-                <span class="model-label">LEFT</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-copy" id="copyBtnA" onclick="copyQuestion('A')" disabled title="Copy question &amp; constraints">&#128203; Copy</button>
+                    <span class="model-label">LEFT</span>
+                </div>
             </div>
             <div class="question-box" id="questionBoxA">
                 <p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>
@@ -109,7 +115,10 @@
         <div class="model-panel" id="panelB">
             <div class="model-header">
                 <span class="model-name" id="modelNameB">Model B</span>
-                <span class="model-label">RIGHT</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-copy" id="copyBtnB" onclick="copyQuestion('B')" disabled title="Copy question &amp; constraints">&#128203; Copy</button>
+                    <span class="model-label">RIGHT</span>
+                </div>
             </div>
             <div class="question-box" id="questionBoxB">
                 <p style="color: #a0a0b0; text-align: center; padding: 40px 0;">Click "Generate Questions" to start</p>
@@ -142,6 +151,8 @@
         const API_BASE = '/api/ModelComparison';
         let currentModelA = null;
         let currentModelB = null;
+        let currentQuestionA = null;
+        let currentQuestionB = null;
         let roundCount = 0;
         let isGenerating = false;
 
@@ -167,6 +178,10 @@
             document.getElementById('questionBoxB').innerHTML = loadingHtml;
             document.getElementById('modelNameA').textContent = '...';
             document.getElementById('modelNameB').textContent = '...';
+            document.getElementById('copyBtnA').disabled = true;
+            document.getElementById('copyBtnB').disabled = true;
+            currentQuestionA = null;
+            currentQuestionB = null;
             document.getElementById('statusBar').textContent = 'Generating questions from two random models...';
 
             try {
@@ -194,6 +209,16 @@
 
                 renderQuestion('questionBoxA', data.modelA);
                 renderQuestion('questionBoxB', data.modelB);
+
+                // Store question data and enable copy buttons
+                if (data.modelA?.isSuccess && data.modelA.question) {
+                    currentQuestionA = data.modelA.question;
+                    document.getElementById('copyBtnA').disabled = false;
+                }
+                if (data.modelB?.isSuccess && data.modelB.question) {
+                    currentQuestionB = data.modelB.question;
+                    document.getElementById('copyBtnB').disabled = false;
+                }
 
                 // Enable voting if at least one model succeeded
                 const bothSucceeded = data.modelA?.isSuccess && data.modelB?.isSuccess;
@@ -235,19 +260,7 @@
                 return;
             }
 
-            let html = `<h3>Question</h3><div class="question-text">${escapeHtml(q.question)}</div>`;
-
-            if (q.constraints && q.constraints.length > 0) {
-                html += '<h3 style="margin-top: 15px;">Constraints</h3><ul class="constraints-list">';
-                q.constraints.forEach(c => {
-                    html += `<li>${escapeHtml(c)}</li>`;
-                });
-                html += '</ul>';
-            }
-
-            if (q.shortCode || q.short_code) {
-                html += `<div style="margin-top: 10px;"><span class="short-code">${escapeHtml(q.shortCode || q.short_code)}</span></div>`;
-            }
+            let html = `<h3>Question</h3><div class="question-text">${escapeHtml(q.question)}</div>`; if (q.constraints && q.constraints.length > 0) { html += '<h3 style="margin-top: 15px;">Constraints</h3><ul class="constraints-list">'; q.constraints.forEach(c => { html += `<li>${escapeHtml(c)}</li>`; }); html += '</ul>'; } if (q.shortTitle || q.short_title) { html += `<div style="margin-top: 10px;"><span class="short-code">${escapeHtml(q.shortTitle || q.short_title)}</span></div>`; }
 
             box.innerHTML = html;
         }
@@ -333,10 +346,14 @@
                 roundCount = 0;
                 currentModelA = null;
                 currentModelB = null;
+                currentQuestionA = null;
+                currentQuestionB = null;
                 document.getElementById('roundCounter').textContent = 'Rounds: 0';
                 document.getElementById('resultsBtn').disabled = true;
                 document.getElementById('voteA').disabled = true;
                 document.getElementById('voteB').disabled = true;
+                document.getElementById('copyBtnA').disabled = true;
+                document.getElementById('copyBtnB').disabled = true;
                 document.getElementById('panelA').classList.remove('winner');
                 document.getElementById('panelB').classList.remove('winner');
                 document.getElementById('modelNameA').textContent = 'Model A';
@@ -349,17 +366,41 @@
             }
         }
 
+        function copyQuestion(panel) {
+            const q = panel === 'A' ? currentQuestionA : currentQuestionB;
+            if (!q) return;
+
+            let text = q.question || '';
+
+            if (q.constraints && q.constraints.length > 0) {
+                text += '\n\nConstraints:\n';
+                q.constraints.forEach(c => { text += `• ${c}\n`; });
+            }
+
+            navigator.clipboard.writeText(text.trim()).then(() => {
+                const btn = document.getElementById(`copyBtn${panel}`);
+                const original = btn.innerHTML;
+                btn.innerHTML = '&#10003; Copied!';
+                btn.style.background = '#2ecc71';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#2ecc71';
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 1800);
+            }).catch(() => {
+                alert('Failed to copy to clipboard.');
+            });
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
-
-        // Close results overlay on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') hideResults();
-        });
     </script>
 </body>
 </html>
