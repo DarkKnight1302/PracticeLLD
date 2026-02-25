@@ -1,6 +1,7 @@
 using NewHorizonLib;
 using NewHorizonLib.Extensions;
 using PracticeLLD.Constants;
+using PracticeLLD.Filters;
 using PracticeLLD.Groq;
 using PracticeLLD.Handlers;
 using PracticeLLD.OpenRouter;
@@ -18,9 +19,6 @@ builder.Services.AddControllers();
 // Note: This requires NewHorizonLib be initialized to provide ISecretService service
 builder.Services.AddOpenRouterClient();
 
-// Register OpenRouter Chat Completions API client
-builder.Services.AddOpenRouterCompletionClient();
-
 // Register Groq Chat Completions API client
 builder.Services.AddGroqCompletionClient();
 
@@ -34,6 +32,10 @@ builder.Services.AddSingleton<IModelComparisonService, ModelComparisonService>()
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IUserActivityRepository, UserActivityRepository>();
 builder.Services.AddSingleton<ISignInHandler, SignInHandler>();
+
+// Register LLD question history repository and filter
+builder.Services.AddSingleton<IUserLldQuestionHistoryRepository, UserLldQuestionHistoryRepository>();
+builder.Services.AddScoped<LldQuestionHistoryFilter>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewHorizonLib.Attributes;
 using NewHorizonLib.Services.Interfaces;
 using PracticeLLD.Constants;
+using PracticeLLD.Filters;
 using PracticeLLD.Services.LldQuestion;
 
 namespace PracticeLLD.Controllers;
@@ -27,6 +28,7 @@ public class LldQuestionController : ControllerBase
     [Authorize]
     [HttpPost("generate")]
     [RateLimit(15, 1440)]
+    [ServiceFilter(typeof(LldQuestionHistoryFilter))]
     public async Task<IActionResult> GenerateQuestion([FromBody] GenerateLldQuestionRequest request, CancellationToken cancellationToken)
     {
         string userId = HttpContext.Request.Headers["x-uid"].FirstOrDefault();

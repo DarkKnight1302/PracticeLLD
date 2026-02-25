@@ -6,12 +6,21 @@ using PracticeLLD.Services.ModelComparison;
 namespace PracticeLLD.Services.LldQuestion;
 
 /// <summary>
-/// Service for generating LLD interview questions using the OpenRouter Chat Completions API.
+/// Service for generating LLD interview questions using the Groq Chat Completions API.
 /// </summary>
 public class LldQuestionService : ILldQuestionService
 {
-    private readonly IOpenRouterCompletionClient _completionClient;
     private readonly IGroqCompletionClient _groqClient;
+
+    /// <summary>
+    /// Models to try in priority order for default question generation.
+    /// </summary>
+    private static readonly string[] FallbackModels =
+    [
+        "moonshotai/kimi-k2-instruct",
+        "openai/gpt-oss-120b",
+        "moonshotai/kimi-k2-instruct-0905"
+    ];
 
     private static readonly object JsonSchema = new
     {
@@ -31,9 +40,8 @@ public class LldQuestionService : ILldQuestionService
         additionalProperties = false
     };
 
-    public LldQuestionService(IOpenRouterCompletionClient completionClient, IGroqCompletionClient groqClient)
+    public LldQuestionService(IGroqCompletionClient groqClient)
     {
-        _completionClient = completionClient;
         _groqClient = groqClient;
     }
 
@@ -46,16 +54,27 @@ public class LldQuestionService : ILldQuestionService
         var systemPrompt = BuildSystemPrompt(difficulty);
         var userPrompt = BuildUserPrompt(alreadyAskedShortTitles);
 
-        var result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
-            userPrompt: userPrompt,
-            jsonSchema: JsonSchema,
-            schemaName: "lld_question",
-            systemPrompt: systemPrompt,
-            temperature: 0.9,
-            reasoningEffort: ReasoningEffort.Medium,
-            cancellationToken: cancellationToken);
+        CompletionResult<LldQuestionResponse>? lastResult = null;
 
-        return ToResult(result);
+        foreach (var model in FallbackModels)
+        {
+            lastResult = await _groqClient.SendPromptJsonAsync<LldQuestionResponse>(
+                model: model,
+                userPrompt: userPrompt,
+                jsonSchema: JsonSchema,
+                schemaName: "lld_question",
+                systemPrompt: systemPrompt,
+                temperature: 0.9,
+                reasoningEffort: ReasoningEffort.Medium,
+                cancellationToken: cancellationToken);
+
+            if (lastResult.IsSuccess)
+            {
+                return ToResult(lastResult);
+            }
+        }
+
+        return ToResult(lastResult!);
     }
 
     /// <inheritdoc />
@@ -70,32 +89,15 @@ public class LldQuestionService : ILldQuestionService
         var systemPrompt = BuildSystemPrompt(difficulty);
         var userPrompt = BuildUserPrompt(alreadyAskedShortTitles);
 
-        CompletionResult<LldQuestionResponse> result;
-
-        if (provider == ModelProvider.Groq)
-        {
-            result = await _groqClient.SendPromptJsonAsync<LldQuestionResponse>(
-                model: modelId,
-                userPrompt: userPrompt,
-                jsonSchema: JsonSchema,
-                schemaName: "lld_question",
-                systemPrompt: systemPrompt,
-                temperature: 0.9,
-                reasoningEffort: reasoningEffort,
-                cancellationToken: cancellationToken);
-        }
-        else
-        {
-            result = await _completionClient.SendPromptJsonAsync<LldQuestionResponse>(
-                model: modelId,
-                userPrompt: userPrompt,
-                jsonSchema: JsonSchema,
-                schemaName: "lld_question",
-                systemPrompt: systemPrompt,
-                temperature: 0.9,
-                reasoningEffort: reasoningEffort,
-                cancellationToken: cancellationToken);
-        }
+        var result = await _groqClient.SendPromptJsonAsync<LldQuestionResponse>(
+            model: modelId,
+            userPrompt: userPrompt,
+            jsonSchema: JsonSchema,
+            schemaName: "lld_question",
+            systemPrompt: systemPrompt,
+            temperature: 0.9,
+            reasoningEffort: reasoningEffort,
+            cancellationToken: cancellationToken);
 
         return ToResult(result);
     }
