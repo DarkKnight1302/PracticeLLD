@@ -57,7 +57,15 @@
         .constraints-heading { color: #e94560; font-size: 0.9rem; margin-top: 18px; margin-bottom: 8px; }
         .constraints-list { list-style: none; padding: 0; }
         .constraints-list li { padding: 7px 12px; margin: 4px 0; background: #0f172a; border-radius: 6px; font-size: 0.88rem; color: #c0c8d4; }
-        .constraints-list li::before { content: "• "; color: #e94560; font-weight: 700; }
+        .constraints-list li::before { content: "â€º "; color: #e94560; font-weight: 700; }
+        .requirements-heading { color: #36b5e9; font-size: 0.9rem; margin-top: 18px; margin-bottom: 8px; }
+        .requirements-list { list-style: none; padding: 0; }
+        .requirements-list li { padding: 7px 12px; margin: 4px 0; background: #0f172a; border-radius: 6px; font-size: 0.88rem; color: #c0c8d4; }
+        .requirements-list li::before { content: "âœ¦ "; color: #36b5e9; font-weight: 700; }
+        .nfr-heading { color: #e9a545; font-size: 0.9rem; margin-top: 18px; margin-bottom: 8px; }
+        .nfr-list { list-style: none; padding: 0; }
+        .nfr-list li { padding: 7px 12px; margin: 4px 0; background: #0f172a; border-radius: 6px; font-size: 0.88rem; color: #c0c8d4; }
+        .nfr-list li::before { content: "âš™ "; color: #e9a545; font-weight: 700; }
         .short-title { display: inline-block; background: #e94560; color: #fff; padding: 3px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; margin-top: 14px; }
 
         .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 50px 0; color: #8ea2b7; font-size: 0.9rem; }
@@ -172,7 +180,7 @@
 
         const btn = document.getElementById('sendOtpBtn');
         btn.disabled = true;
-        setAuthMsg('Sending OTP…', false);
+        setAuthMsg('Sending OTPï¿½', false);
 
         try {
             const res = await fetch('/api/SignIn/send-otp', {
@@ -202,7 +210,7 @@
 
         const btn = document.getElementById('verifyOtpBtn');
         btn.disabled = true;
-        setAuthMsg('Verifying…', false);
+        setAuthMsg('Verifyingï¿½', false);
 
         try {
             const res = await fetch('/api/SignIn/verify-otp', {
@@ -263,7 +271,7 @@
         document.getElementById('copyBtn').disabled = true;
         currentQ = null;
 
-        body.innerHTML = '<div class="loading"><div class="spinner"></div>Generating question…</div>';
+        body.innerHTML = '<div class="loading"><div class="spinner"></div>Generating questionï¿½</div>';
 
         const difficulty = document.getElementById('difficulty').value;
         const history = getHistory();
@@ -332,6 +340,20 @@
             html += '</ul>';
         }
 
+        const funcReqs = q.functional_requirements || [];
+        if (funcReqs.length) {
+            html += '<div class="requirements-heading">Functional Requirements</div><ul class="requirements-list">';
+            funcReqs.forEach(r => { html += `<li>${escapeHtml(r)}</li>`; });
+            html += '</ul>';
+        }
+
+        const nfReqs = q.non_functional_requirements || [];
+        if (nfReqs.length) {
+            html += '<div class="nfr-heading">Non-Functional Requirements</div><ul class="nfr-list">';
+            nfReqs.forEach(r => { html += `<li>${escapeHtml(r)}</li>`; });
+            html += '</ul>';
+        }
+
         const title = q.shortTitle || q.short_title || '';
         if (title) {
             html += `<span class="short-title">${escapeHtml(title)}</span>`;
@@ -346,7 +368,17 @@
         const constraints = currentQ.constraints || [];
         if (constraints.length) {
             text += '\n\nConstraints:\n';
-            constraints.forEach(c => { text += `• ${c}\n`; });
+            constraints.forEach(c => { text += `â€¢ ${c}\n`; });
+        }
+        const funcReqs = currentQ.functional_requirements || [];
+        if (funcReqs.length) {
+            text += '\nFunctional Requirements:\n';
+            funcReqs.forEach(r => { text += `âœ¦ ${r}\n`; });
+        }
+        const nfReqs = currentQ.non_functional_requirements || [];
+        if (nfReqs.length) {
+            text += '\nNon-Functional Requirements:\n';
+            nfReqs.forEach(r => { text += `âš™ ${r}\n`; });
         }
         navigator.clipboard.writeText(text.trim()).then(() => {
             const btn = document.getElementById('copyBtn');
@@ -387,7 +419,7 @@
             div.className = 'history-item';
             div.innerHTML = `
                 <div class="hi-title">${escapeHtml(h.shortTitle || 'Question ' + (i + 1))}</div>
-                <div class="hi-meta">${escapeHtml(h.difficulty)} · ${new Date(h.timestamp).toLocaleString()}</div>
+                <div class="hi-meta">${escapeHtml(h.difficulty)} ï¿½ ${new Date(h.timestamp).toLocaleString()}</div>
             `;
             div.onclick = () => {
                 document.getElementById('questionBody').innerHTML =

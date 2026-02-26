@@ -24,4 +24,16 @@ public class LldQuestionResponse
     /// </summary>
     [JsonPropertyName("short_title")]
     public string ShortTitle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Functional requirements that the design should fulfill.
+    /// </summary>
+    [JsonPropertyName("functional_requirements")]
+    public List<string> FunctionalRequirements { get; set; } = [];
+
+    /// <summary>
+    /// Non-functional requirements such as scalability, performance, and reliability considerations.
+    /// </summary>
+    [JsonPropertyName("non_functional_requirements")]
+    public List<string> NonFunctionalRequirements { get; set; } = [];
 }

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice LLD | Sign In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0b10;
+            --accent-blue: #007aff;
+            --blueprint-grid: rgba(0, 122, 255, 0.05);
+            --blueprint-line: rgba(0, 122, 255, 0.15);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Blueprint Grid Background */
+        .blueprint-bg {
+            background-image:
+                linear-gradient(var(--blueprint-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--blueprint-line) 1px, transparent 1px),
+                linear-gradient(var(--blueprint-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--blueprint-grid) 1px, transparent 1px);
+            background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+            background-position: center center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Scanline */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--accent-blue), transparent);
+            position: absolute;
+            opacity: 0.3;
+            animation: scan 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .engineering-border {
+            position: relative;
+        }
+
+        .engineering-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 24px;
+            height: 24px;
+            border-top: 2px solid var(--accent-blue);
+            border-left: 2px solid var(--accent-blue);
+            transition: all 0.4s ease;
+        }
+
+        .engineering-border::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 24px;
+            height: 24px;
+            border-bottom: 2px solid var(--accent-blue);
+            border-right: 2px solid var(--accent-blue);
+            transition: all 0.4s ease;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(0, 122, 255, 0.5);
+        }
+
+        .btn-futuristic {
+            background: linear-gradient(135deg, #007aff 0%, #0044ff 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-futuristic::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-futuristic:hover::before {
+            left: 100%;
+        }
+
+        .btn-futuristic:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 122, 255, 0.6);
+        }
+
+        .btn-futuristic:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-futuristic:disabled::before {
+            display: none;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            animation: float-particle linear infinite;
+        }
+
+        @keyframes float-particle {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+        }
+
+        /* Hero gradient orbs */
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            animation: orb-drift 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes orb-drift {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.1); }
+            66% { transform: translate(-20px, 30px) scale(0.9); }
+            100% { transform: translate(10px, -10px) scale(1.05); }
+        }
+
+        /* Pulse ring for logo */
+        .pulse-ring {
+            animation: pulse-ring-anim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring-anim {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        /* Card entrance */
+        .login-card-enter {
+            animation: card-enter 0.7s ease-out both;
+        }
+
+        @keyframes card-enter {
+            0% { opacity: 0; transform: translateY(30px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Input focus glow */
+        .input-field {
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-blue) !important;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15), 0 0 20px rgba(0, 122, 255, 0.1);
+        }
+
+        /* OTP input boxes */
+        .otp-box {
+            width: 48px;
+            height: 56px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #f8fafc;
+            outline: none;
+            transition: all 0.3s ease;
+            caret-color: var(--accent-blue);
+        }
+
+        .otp-box:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2), 0 0 15px rgba(0, 122, 255, 0.15);
+        }
+
+        .otp-box.filled {
+            border-color: rgba(0, 122, 255, 0.5);
+            background: rgba(0, 122, 255, 0.05);
+        }
+
+        /* Step transitions */
+        .step-hidden {
+            display: none;
+        }
+
+        .step-visible {
+            animation: step-fade-in 0.5s ease-out both;
+        }
+
+        @keyframes step-fade-in {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Status message */
+        .status-msg {
+            transition: all 0.3s ease;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Resend timer */
+        .resend-link {
+            transition: all 0.2s ease;
+        }
+
+        .resend-link:not(.disabled):hover {
+            color: var(--accent-blue);
+            text-shadow: 0 0 8px rgba(0, 122, 255, 0.4);
+        }
+
+        .resend-link.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Back button */
+        .back-link {
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: var(--accent-blue);
+        }
+
+        .back-link:hover svg {
+            transform: translateX(-3px);
+            transition: transform 0.2s ease;
+        }
+
+        /* Typewriter cursor */
+        .typewriter-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--accent-blue);
+            margin-left: 2px;
+            animation: blink-cursor 0.8s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink-cursor {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center relative">
+    <div class="blueprint-bg"></div>
+    <div class="scanline"></div>
+
+    <!-- Floating Particles -->
+    <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Gradient Orbs -->
+    <div class="hero-orb w-80 h-80 bg-blue-600/10 top-1/4 -left-40"></div>
+    <div class="hero-orb w-64 h-64 bg-indigo-600/10 bottom-1/4 -right-32" style="animation-delay: -4s;"></div>
+
+    <!-- Background Technical Annotations -->
+    <div class="absolute top-16 left-8 hidden lg:block opacity-15 mono text-[10px]">
+        <p>AUTH_MODULE: v3.1</p>
+        <p>PROTOCOL: OTP_VERIFY</p>
+        <p>ENCRYPTION: AES-256</p>
+        <div class="w-28 h-[1px] bg-blue-500 mt-1"></div>
+    </div>
+
+    <div class="absolute bottom-16 right-8 hidden lg:block opacity-15 mono text-[10px] text-right">
+        <p>SESSION: PENDING</p>
+        <p>HANDSHAKE: AWAITING</p>
+        <div class="w-28 h-[1px] bg-blue-500 mt-1 ml-auto"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="relative z-10 w-full max-w-md mx-4 login-card-enter">
+        <!-- Brand Header -->
+        <div class="text-center mb-8">
+            <a href="landing.html" class="inline-flex items-center gap-2 mb-4 group">
+                <div class="w-10 h-10 bg-blue-600 rounded-sm flex items-center justify-center font-bold text-white mono text-lg pulse-ring">P</div>
+                <span class="font-extrabold tracking-tighter text-2xl">PRACTICE<span class="text-blue-500">LLD</span></span>
+            </a>
+            <div class="mono text-[10px] text-gray-500 tracking-widest uppercase mt-1">
+                SECURE_AUTHENTICATION_GATEWAY
+            </div>
+        </div>
+
+        <!-- Login Card Body -->
+        <div class="engineering-border glass-card rounded-2xl p-8 md:p-10">
+            <!-- Step Indicator -->
+            <div class="flex items-center justify-center gap-3 mb-8">
+                <div id="stepDot1" class="w-2.5 h-2.5 rounded-full bg-blue-500 transition-all duration-300"></div>
+                <div class="w-12 h-[1px] bg-white/10" id="stepLine">
+                    <div id="stepLineProgress" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%;"></div>
+                </div>
+                <div id="stepDot2" class="w-2.5 h-2.5 rounded-full bg-white/20 transition-all duration-300"></div>
+            </div>
+
+            <!-- ===== STEP 1: Email ===== -->
+            <div id="emailStep">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold tracking-tight mb-2 glow-text">IDENTIFY YOURSELF</h1>
+                    <p class="text-sm text-gray-400 font-light">Enter your email to receive a one-time access code.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mono text-[10px] text-gray-500 uppercase tracking-widest mb-2">Email Address</label>
+                        <input
+                            type="email"
+                            id="emailInput"
+                            placeholder="engineer@example.com"
+                            autocomplete="email"
+                            class="input-field w-full px-4 py-3.5 bg-transparent border border-white/10 rounded-lg mono text-sm outline-none placeholder-gray-600"
+                        />
+                    </div>
+
+                    <button
+                        id="sendOtpBtn"
+                        onclick="sendOtp()"
+                        class="btn-futuristic w-full py-3.5 rounded-lg font-bold text-sm tracking-widest uppercase"
+                    >
+                        SEND_OTP
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===== STEP 2: OTP ===== -->
+            <div id="otpStep" class="step-hidden">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold tracking-tight mb-2 glow-text">VERIFY ACCESS CODE</h1>
+                    <p class="text-sm text-gray-400 font-light">
+                        Code dispatched to <span id="emailDisplay" class="text-blue-400 mono text-xs"></span>
+                    </p>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block mono text-[10px] text-gray-500 uppercase tracking-widest mb-3 text-center">Enter 6-Digit Code</label>
+                        <div class="flex justify-center gap-2.5" id="otpContainer">
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="0" />
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="1" />
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="2" />
+                            <div class="flex items-center"><div class="w-2 h-0.5 bg-white/20 rounded"></div></div>
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="3" />
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="4" />
+                            <input type="text" maxlength="1" inputmode="numeric" class="otp-box mono" data-index="5" />
+                        </div>
+                    </div>
+
+                    <button
+                        id="verifyOtpBtn"
+                        onclick="verifyOtp()"
+                        class="btn-futuristic w-full py-3.5 rounded-lg font-bold text-sm tracking-widest uppercase"
+                    >
+                        VERIFY_&amp;_LOGIN
+                    </button>
+
+                    <div class="flex items-center justify-between text-xs">
+                        <button onclick="goBackToEmail()" class="back-link flex items-center gap-1 text-gray-500 hover:text-blue-400 bg-transparent border-none cursor-pointer">
+                            <svg class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            Change email
+                        </button>
+                        <button id="resendBtn" onclick="resendOtp()" class="resend-link mono text-gray-500 bg-transparent border-none cursor-pointer disabled" disabled>
+                            RESEND <span id="resendTimer">(30s)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMsg" class="status-msg mt-4 text-center text-xs mono min-h-[20px]"></div>
+        </div>
+
+        <!-- Footer annotation -->
+        <div class="text-center mt-6 mono text-[10px] text-gray-600 tracking-widest uppercase">
+            ENCRYPTED_CHANNEL · ZERO_PASSWORD_POLICY
+        </div>
+    </div>
+
+    <script>
+        // ---- Constants ----
+        const STORAGE_AUTH  = 'practicelld_auth_token';
+        const STORAGE_EMAIL = 'practicelld_user_email';
+
+        let resendCountdown = null;
+        let resendSeconds = 30;
+
+        // ---- Init: pre-fill email from query param ----
+        (function init() {
+            // If already authenticated, redirect to index
+            const existingToken = localStorage.getItem(STORAGE_AUTH);
+            const existingEmail = localStorage.getItem(STORAGE_EMAIL);
+            if (existingToken && existingEmail) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const email = params.get('email');
+            if (email) {
+                document.getElementById('emailInput').value = email;
+            }
+
+            // Focus email input
+            document.getElementById('emailInput').focus();
+        })();
+
+        // ---- Status helpers ----
+        function setStatus(text, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = text;
+            el.className = 'status-msg mt-4 text-center text-xs mono min-h-[20px]';
+            if (type === 'error') el.classList.add('text-red-400');
+            else if (type === 'success') el.classList.add('text-green-400');
+            else el.classList.add('text-blue-400');
+        }
+
+        function clearStatus() {
+            document.getElementById('statusMsg').textContent = '';
+        }
+
+        // ---- Step transitions ----
+        function showOtpStep() {
+            const email = document.getElementById('emailInput').value.trim();
+            document.getElementById('emailDisplay').textContent = email;
+
+            document.getElementById('emailStep').classList.add('step-hidden');
+            document.getElementById('otpStep').classList.remove('step-hidden');
+            document.getElementById('otpStep').classList.add('step-visible');
+
+            // Update step indicator
+            document.getElementById('stepDot2').classList.remove('bg-white/20');
+            document.getElementById('stepDot2').classList.add('bg-blue-500');
+            document.getElementById('stepLineProgress').style.width = '100%';
+
+            // Focus first OTP box
+            const firstBox = document.querySelector('.otp-box[data-index="0"]');
+            if (firstBox) firstBox.focus();
+
+            // Start resend timer
+            startResendTimer();
+        }
+
+        function goBackToEmail() {
+            document.getElementById('otpStep').classList.add('step-hidden');
+            document.getElementById('otpStep').classList.remove('step-visible');
+            document.getElementById('emailStep').classList.remove('step-hidden');
+            document.getElementById('emailStep').classList.add('step-visible');
+
+            // Reset step indicator
+            document.getElementById('stepDot2').classList.add('bg-white/20');
+            document.getElementById('stepDot2').classList.remove('bg-blue-500');
+            document.getElementById('stepLineProgress').style.width = '0%';
+
+            clearStatus();
+            clearOtpBoxes();
+            stopResendTimer();
+
+            document.getElementById('emailInput').focus();
+        }
+
+        // ---- OTP box logic ----
+        function getOtpValue() {
+            const boxes = document.querySelectorAll('.otp-box');
+            let otp = '';
+            boxes.forEach(function(box) { otp += box.value; });
+            return otp;
+        }
+
+        function clearOtpBoxes() {
+            document.querySelectorAll('.otp-box').forEach(function(box) {
+                box.value = '';
+                box.classList.remove('filled');
+            });
+        }
+
+        // OTP box input handling
+        document.getElementById('otpContainer').addEventListener('input', function(e) {
+            var target = e.target;
+            if (!target.classList.contains('otp-box')) return;
+
+            var val = target.value.replace(/\D/g, '');
+            target.value = val ? val[0] : '';
+
+            if (val) {
+                target.classList.add('filled');
+                var idx = parseInt(target.dataset.index);
+                var next = document.querySelector('.otp-box[data-index="' + (idx + 1) + '"]');
+                if (next) next.focus();
+            } else {
+                target.classList.remove('filled');
+            }
+
+            // Auto-verify when all 6 digits are entered
+            if (getOtpValue().length === 6) {
+                verifyOtp();
+            }
+        });
+
+        document.getElementById('otpContainer').addEventListener('keydown', function(e) {
+            var target = e.target;
+            if (!target.classList.contains('otp-box')) return;
+
+            if (e.key === 'Backspace' && !target.value) {
+                var idx = parseInt(target.dataset.index);
+                var prev = document.querySelector('.otp-box[data-index="' + (idx - 1) + '"]');
+                if (prev) {
+                    prev.value = '';
+                    prev.classList.remove('filled');
+                    prev.focus();
+                }
+            }
+        });
+
+        // Handle paste into OTP boxes
+        document.getElementById('otpContainer').addEventListener('paste', function(e) {
+            e.preventDefault();
+            var paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+            var boxes = document.querySelectorAll('.otp-box');
+            for (var i = 0; i < paste.length && i < boxes.length; i++) {
+                boxes[i].value = paste[i];
+                boxes[i].classList.add('filled');
+            }
+            if (paste.length > 0) {
+                var focusIdx = Math.min(paste.length, boxes.length - 1);
+                boxes[focusIdx].focus();
+            }
+            if (paste.length === 6) {
+                verifyOtp();
+            }
+        });
+
+        // ---- Resend timer ----
+        function startResendTimer() {
+            resendSeconds = 30;
+            var btn = document.getElementById('resendBtn');
+            var timerEl = document.getElementById('resendTimer');
+            btn.disabled = true;
+            btn.classList.add('disabled');
+
+            resendCountdown = setInterval(function() {
+                resendSeconds--;
+                timerEl.textContent = '(' + resendSeconds + 's)';
+                if (resendSeconds <= 0) {
+                    stopResendTimer();
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                    timerEl.textContent = '';
+                }
+            }, 1000);
+        }
+
+        function stopResendTimer() {
+            if (resendCountdown) {
+                clearInterval(resendCountdown);
+                resendCountdown = null;
+            }
+        }
+
+        // ---- API calls ----
+        async function sendOtp() {
+            var email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                setStatus('Email address is required.', 'error');
+                return;
+            }
+
+            // Basic email validation
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                setStatus('Enter a valid email address.', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('sendOtpBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> TRANSMITTING...';
+            clearStatus();
+
+            try {
+                var res = await fetch('/api/SignIn/send-otp', {
+                    method: 'POST',
+                    headers: { 'x-uid': email }
+                });
+
+                if (!res.ok) {
+                    var txt = await res.text();
+                    throw new Error(txt || 'Failed to send OTP');
+                }
+
+                setStatus('Access code sent to your email.', 'success');
+                showOtpStep();
+            } catch (e) {
+                setStatus(e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'SEND_OTP';
+            }
+        }
+
+        async function verifyOtp() {
+            var email = document.getElementById('emailInput').value.trim();
+            var otp = getOtpValue();
+
+            if (otp.length !== 6) {
+                setStatus('Enter the complete 6-digit code.', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('verifyOtpBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> AUTHENTICATING...';
+            clearStatus();
+
+            try {
+                var res = await fetch('/api/SignIn/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-uid': email
+                    },
+                    body: JSON.stringify({ otp: otp })
+                });
+
+                if (!res.ok) {
+                    var txt = await res.text();
+                    throw new Error(txt || 'Verification failed');
+                }
+
+                var data = await res.json();
+                var authToken = data.authToken || data.AuthToken;
+
+                if (!authToken) {
+                    throw new Error('Invalid OTP. Try again.');
+                }
+
+                // Store auth
+                localStorage.setItem(STORAGE_AUTH, authToken);
+                localStorage.setItem(STORAGE_EMAIL, email);
+
+                setStatus('Access granted. Redirecting...', 'success');
+
+                // Redirect after brief delay
+                setTimeout(function() {
+                    window.location.href = 'index.html';
+                }, 600);
+            } catch (e) {
+                setStatus(e.message, 'error');
+                clearOtpBoxes();
+                var firstBox = document.querySelector('.otp-box[data-index="0"]');
+                if (firstBox) firstBox.focus();
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'VERIFY_&amp;_LOGIN';
+            }
+        }
+
+        async function resendOtp() {
+            var email = document.getElementById('emailInput').value.trim();
+
+            var btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            clearStatus();
+
+            try {
+                var res = await fetch('/api/SignIn/send-otp', {
+                    method: 'POST',
+                    headers: { 'x-uid': email }
+                });
+
+                if (!res.ok) {
+                    var txt = await res.text();
+                    throw new Error(txt || 'Failed to resend OTP');
+                }
+
+                setStatus('New code sent successfully.', 'success');
+                clearOtpBoxes();
+                var firstBox = document.querySelector('.otp-box[data-index="0"]');
+                if (firstBox) firstBox.focus();
+                startResendTimer();
+            } catch (e) {
+                setStatus(e.message, 'error');
+                btn.disabled = false;
+                btn.classList.remove('disabled');
+            }
+        }
+
+        // Enter key on email input
+        document.getElementById('emailInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') sendOtp();
+        });
+
+        // Floating particles
+        (function createParticles() {
+            var container = document.getElementById('particles');
+            var count = 20;
+            for (var i = 0; i < count; i++) {
+                var particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (8 + Math.random() * 12) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
+                particle.style.width = (1 + Math.random() * 2) + 'px';
+                particle.style.height = particle.style.width;
+                container.appendChild(particle);
+            }
+        })();
+    </script>
+</body>
+</html>

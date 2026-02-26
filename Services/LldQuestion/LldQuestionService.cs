@@ -34,9 +34,21 @@ public class LldQuestionService : ILldQuestionService
                 items = new { type = "string" },
                 description = "List of constraints or requirements for the question."
             },
-            short_title = new { type = "string", description = "A unique short title which can be identifier for the question." }
+            short_title = new { type = "string", description = "A unique short title which can be identifier for the question." },
+            functional_requirements = new
+            {
+                type = "array",
+                items = new { type = "string" },
+                description = "List of functional requirements that the design should fulfill."
+            },
+            non_functional_requirements = new
+            {
+                type = "array",
+                items = new { type = "string" },
+                description = "List of non-functional requirements such as scalability, performance, thread-safety, and reliability considerations."
+            }
         },
-        required = new[] { "question", "constraints", "short_title" },
+        required = new[] { "question", "constraints", "short_title", "functional_requirements", "non_functional_requirements" },
         additionalProperties = false
     };
 
@@ -121,6 +133,8 @@ public class LldQuestionService : ILldQuestionService
             Guidelines:
             - The question should require the candidate to design classes, interfaces, and their relationships.
             - Include clear constraints that define the scope of the problem.
+            - Include functional requirements that describe the core behaviors and features the design must support.
+            - Include non-functional requirements such as scalability, performance, thread-safety, extensibility, and reliability considerations relevant to the design.
             - The short_title should be a concise uppercase identifier that reflects the core concept of the question.
             - You should NOT ask any question whose short title matches one from the already asked list provided by the user.
             - Make sure the question is practical and commonly asked in real interviews.
