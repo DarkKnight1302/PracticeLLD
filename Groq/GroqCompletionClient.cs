@@ -75,7 +75,7 @@ public class GroqCompletionClient : IGroqCompletionClient
         var responseFormat = BuildResponseFormat(schemaName, jsonSchema);
         var request = BuildRequest(model, messages, temperature, reasoningEffort, maxTokens, responseFormat);
 
-        var result = await ExecuteRequestAsync(request, cancellationToken);
+        var result = await ExecuteRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
         // If the model rejected response_format, retry without it and extract JSON from free-form text.
         if (!result.IsSuccess)
@@ -85,7 +85,7 @@ public class GroqCompletionClient : IGroqCompletionClient
                 model, result.ErrorMessage);
 
             var plainRequest = BuildRequest(model, messages, temperature, reasoningEffort, maxTokens, responseFormat: null);
-            result = await ExecuteRequestAsync(plainRequest, cancellationToken);
+            result = await ExecuteRequestAsync(plainRequest, cancellationToken).ConfigureAwait(false);
         }
 
         return BuildTypedResult<T>(result);

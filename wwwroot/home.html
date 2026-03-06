@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice LLD | Home Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0b10;
+            --accent-blue: #007aff;
+            --blueprint-grid: rgba(0, 122, 255, 0.05);
+            --blueprint-line: rgba(0, 122, 255, 0.15);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Blueprint Grid Background */
+        .blueprint-bg {
+            background-image: linear-gradient(var(--blueprint-line) 1px, transparent 1px), linear-gradient(90deg, var(--blueprint-line) 1px, transparent 1px), linear-gradient(var(--blueprint-grid) 1px, transparent 1px), linear-gradient(90deg, var(--blueprint-grid) 1px, transparent 1px);
+            background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+            background-position: center center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Tech Scanline Effect */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--accent-blue), transparent);
+            position: absolute;
+            left: 0;
+            opacity: 0.3;
+            animation: scan 8s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(0, 122, 255, 0.5);
+        }
+
+        .btn-futuristic {
+            background: linear-gradient(135deg, #007aff 0%, #0044ff 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-futuristic::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-futuristic:hover::before {
+            left: 100%;
+        }
+
+        .btn-futuristic:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 122, 255, 0.6);
+        }
+        
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            animation: float-particle linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes float-particle {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+        }
+
+        /* Pulse ring */
+        .pulse-ring {
+            animation: pulse-ring-anim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring-anim {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .cyber-select {
+            appearance: none;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(0, 122, 255, 0.3);
+            color: #60a5fa;
+            padding: 12px 40px 12px 16px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23007aff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            font-weight: 500;
+        }
+
+        .cyber-select:hover, .cyber-select:focus {
+            border-color: rgba(0, 122, 255, 0.8);
+            box-shadow: 0 0 15px rgba(0, 122, 255, 0.2);
+        }
+
+        .history-item {
+            position: relative;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--accent-blue);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+            transform-origin: bottom;
+        }
+
+        .history-item:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(0, 122, 255, 0.3);
+            transform: translateX(5px);
+        }
+
+        .history-item:hover::before {
+            transform: scaleY(1);
+        }
+        
+        .difficulty-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .diff-easy { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .diff-medium { background: rgba(234, 179, 8, 0.1); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.2); }
+        .diff-hard { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            animation: orb-drift 12s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes orb-drift {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.1); }
+            66% { transform: translate(-20px, 30px) scale(0.9); }
+            100% { transform: translate(10px, -10px) scale(1.05); }
+        }
+
+        /* Nav specific styles */
+        .nav-glass {
+            animation: nav-slide-down 0.8s ease-out;
+        }
+        @keyframes nav-slide-down {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .badge-pulse {
+            animation: badge-pulse-anim 2s infinite;
+        }
+        @keyframes badge-pulse-anim {
+            0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(0, 122, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Security Check -->
+    <script>
+        const authToken = localStorage.getItem('practicelld_auth_token');
+        const userEmail = localStorage.getItem('practicelld_user_email');
+        if (!authToken || !userEmail) {
+            window.location.replace('landing.html');
+        }
+        
+        function logout() {
+            localStorage.removeItem('practicelld_auth_token');
+            localStorage.removeItem('practicelld_user_email');
+            window.location.replace('landing.html');
+        }
+        
+        function navigateToInterview() {
+            const diff = document.getElementById('difficultySelector').value;
+            // Optionally store the selected difficulty so interview.html can pick it up
+            localStorage.setItem('practicelld_selected_difficulty', diff);
+            window.location.href = 'interview.html';
+        }
+        
+        function openPastInterview(itemStr) {
+            // Encode the past question string and send to interview.html or store it temporarily to view
+            localStorage.setItem('practicelld_view_past', itemStr);
+            window.location.href = 'interview.html?view=past';
+        }
+    </script>
+
+    <div class="blueprint-bg"></div>
+    <div class="scanline"></div>
+    <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <div class="hero-orb w-96 h-96 bg-blue-600/15 top-0 -left-20"></div>
+    <div class="hero-orb w-80 h-80 bg-indigo-600/10 bottom-0 right-0"></div>
+
+    <!-- Navigation -->
+    <nav class="w-full z-50 px-6 py-4 relative">
+        <div class="nav-glass max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full border border-white/10">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='home.html'">
+                <div class="w-8 h-8 bg-blue-600 rounded-sm flex items-center justify-center font-bold text-white mono pulse-ring">P</div>
+                <span class="font-extrabold tracking-tighter text-xl">PRACTICE<span class="text-blue-500">LLD</span></span>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <div class="hidden md:flex items-center gap-2 px-3 py-1 bg-blue-900/30 border border-blue-500/20 rounded-full">
+                    <div class="w-2 h-2 rounded-full bg-green-500 badge-pulse"></div>
+                    <span class="mono text-xs text-blue-300" id="userEmailDisplay">loading...</span>
+                    <script>document.getElementById('userEmailDisplay').textContent = userEmail;</script>
+                </div>
+                
+                <button class="bg-red-500/10 hover:bg-red-500/20 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest border border-red-500/30 text-red-400 transition-all hover:border-red-500/60 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]" onclick="logout()">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center justify-start pt-12 px-4 pb-20 relative z-10 w-full">
+        
+        <div class="max-w-5xl w-full">
+            
+            <!-- Dashboard Header -->
+            <div class="mb-12">
+                <div class="inline-block px-3 py-1 mb-4 glass-card rounded border border-blue-500/30">
+                    <span class="mono text-[10px] text-blue-400 tracking-tighter uppercase font-bold">⬡ COMMAND_CENTER_ACTIVE</span>
+                </div>
+                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight glow-text mb-2 animate-[nav-slide-down_0.5s_ease-out]">
+                    SYSTEM <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-600">DASHBOARD</span>
+                </h1>
+                <p class="mono text-gray-400 text-sm tracking-widest uppercase animate-[nav-slide-down_0.7s_ease-out]">
+                    Select parameters and initialize simulation
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Left Column: Start Interview Card -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-card rounded-2xl p-8 border border-blue-500/20 shadow-[0_0_40px_rgba(0,122,255,0.1)] relative overflow-hidden group">
+                        
+                        <!-- BG accent -->
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl group-hover:bg-blue-600/20 transition-all duration-700"></div>
+                        
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 rounded bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h2 class="text-xl font-bold tracking-tight">New Scenario</h2>
+                        </div>
+                        
+                        <p class="text-sm text-gray-400 mb-8 font-light leading-relaxed">
+                            Initialize a new AI-generated Low Level Design interview. The simulation will adapt to your selected difficulty level and generate novel requirements.
+                        </p>
+                        
+                        <div class="space-y-6 relative z-10">
+                            <div class="flex flex-col gap-2">
+                                <label class="mono text-[10px] text-blue-400 uppercase tracking-widest pl-1 font-bold">Difficulty_Level</label>
+                                <select id="difficultySelector" class="cyber-select w-full">
+                                    <option value="Easy">EASY // Fundamentals &amp; Standard Patterns</option>
+                                    <option value="Medium" selected>MEDIUM // Production Constraints &amp; Scalability</option>
+                                    <option value="Hard">HARD // Distributed Systems &amp; Complex Domains</option>
+                                </select>
+                            </div>
+
+                            <button onclick="navigateToInterview()" class="btn-futuristic w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase flex justify-center items-center gap-2">
+                                <span>Initialize Interview Session</span>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="glass-card rounded-2xl p-6 border border-white/5 flex gap-4 divide-x divide-white/10">
+                        <div class="flex-1 text-center">
+                            <div class="mono text-[10px] text-gray-500 uppercase mb-1">Simulations</div>
+                            <div class="text-2xl font-bold mono text-e2e8f0 glow-text" id="statCompleted">0</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="mono text-[10px] text-gray-500 uppercase mb-1">Avg Score</div>
+                            <div class="text-2xl font-bold mono text-green-400 glow-text">92%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Past Interviews -->
+                <div class="lg:col-span-7">
+                    <div class="glass-card rounded-2xl p-8 border border-white/10 h-full flex flex-col">
+                        
+                        <div class="flex justify-between items-end mb-6 border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="text-xl font-bold tracking-tight mb-1">Session Archives</h3>
+                                <p class="mono text-[10px] text-gray-500 uppercase">Previously compiled architectural designs</p>
+                            </div>
+                            <div class="mono text-[10px] text-blue-400 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                DB_SYNC_OK
+                            </div>
+                        </div>
+
+                        <div id="historyContainer" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+                            <!-- Populated by JS -->
+                            <div class="w-full py-12 flex flex-col items-center justify-center text-gray-500 gap-3 border border-dashed border-white/10 rounded-xl bg-black/20" id="emptyHistoryState">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-8 h-8 opacity-50" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                <span class="mono text-xs uppercase tracking-widest">No previous sessions found</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // Load history
+        const STORAGE_HIST = 'practicelld_question_history';
+        
+        function loadHistory() {
+            try {
+                const hist = JSON.parse(localStorage.getItem(STORAGE_HIST) || '[]');
+                const container = document.getElementById('historyContainer');
+                const emptyState = document.getElementById('emptyHistoryState');
+                const statObj = document.getElementById('statCompleted');
+                
+                statObj.textContent = hist.length;
+                
+                if (hist.length > 0) {
+                    emptyState.style.display = 'none';
+                    
+                    hist.forEach((h, index) => {
+                        const date = new Date(h.timestamp);
+                        const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const formattedTime = date.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' });
+                        
+                        let badgeClass = 'diff-medium';
+                        if(h.difficulty === 'Easy') badgeClass = 'diff-easy';
+                        if(h.difficulty === 'Hard') badgeClass = 'diff-hard';
+                        
+                        const el = document.createElement('div');
+                        el.className = 'history-item rounded-xl p-4 flex justify-between items-center group';
+                        
+                        const title = escapeHtml(h.shortTitle || 'Question ' + (index + 1));
+                        const itemData = JSON.stringify(h).replace(/'/g, "&#39;");
+                        
+                        el.innerHTML = `
+                            <div class="flex-1 pr-4">
+                                <div class="flex items-center gap-3 mb-1.5">
+                                    <span class="difficulty-badge ${badgeClass} mono">${escapeHtml(h.difficulty)}</span>
+                                    <span class="mono text-[10px] text-gray-500">${formattedDate} // ${formattedTime}</span>
+                                </div>
+                                <h4 class="font-semibold text-[15px] group-hover:text-blue-400 transition-colors">${title}</h4>
+                            </div>
+                            <button onclick='openPastInterview(${itemData})' class="shrink-0 w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        `;
+                        container.appendChild(el);
+                    });
+                }
+            } catch(e) {
+                console.error("Error loading history", e);
+            }
+        }
+        
+        function escapeHtml(unsafe) {
+            return (unsafe || '').toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+            
+            // Create particles
+            var container = document.getElementById("particles");
+            var count = 25;
+            for (var i = 0; i < count; i++) {
+                var particle = document.createElement("div");
+                particle.className = "particle";
+                particle.style.left = Math.random() * 100 + "%";
+                particle.style.animationDuration = (8 + Math.random() * 12) + "s";
+                particle.style.animationDelay = (Math.random() * 10) + "s";
+                particle.style.width = (1 + Math.random() * 2) + "px";
+                particle.style.height = particle.style.width;
+                container.appendChild(particle);
+            }
+        });
+        
+        // Custom scrollbar
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.02);
+                border-radius: 4px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background: rgba(0, 122, 255, 0.2);
+                border-radius: 4px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                background: rgba(0, 122, 255, 0.4);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
