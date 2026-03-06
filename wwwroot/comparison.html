@@ -37,9 +37,12 @@
         .question-box { flex: 1; background: #1a1a2e; border-radius: 8px; padding: 15px; margin-bottom: 15px; overflow-y: auto; max-height: 400px; }
         .question-box h3 { color: #e94560; font-size: 0.9rem; margin-bottom: 10px; }
         .question-text { color: #e0e0e0; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; }
-        .constraints-list { list-style: none; padding: 0; margin-top: 10px; }
-        .constraints-list li { padding: 6px 10px; margin: 4px 0; background: #0f3460; border-radius: 4px; font-size: 0.85rem; color: #c0c0d0; }
-        .constraints-list li::before { content: "\2022 "; color: #e94560; }
+        .requirements-list { list-style: none; padding: 0; margin-top: 10px; }
+        .requirements-list li { padding: 6px 10px; margin: 4px 0; background: #0f3460; border-radius: 4px; font-size: 0.85rem; color: #c0c0d0; }
+        .requirements-list li::before { content: "✦ "; color: #36b5e9; }
+        .nfr-list { list-style: none; padding: 0; margin-top: 10px; }
+        .nfr-list li { padding: 6px 10px; margin: 4px 0; background: #0f3460; border-radius: 4px; font-size: 0.85rem; color: #c0c0d0; }
+        .nfr-list li::before { content: "⚙ "; color: #e9a545; }
         .short-code { display: inline-block; background: #e94560; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-top: 8px; }
         .vote-btn { width: 100%; padding: 12px; margin-top: auto; }
         .error-msg { color: #e74c3c; font-style: italic; padding: 20px; text-align: center; }
@@ -103,7 +106,7 @@
             <div class="model-header">
                 <span class="model-name" id="modelNameA">Model A</span>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="btn-copy" id="copyBtnA" onclick="copyQuestion('A')" disabled title="Copy question &amp; constraints">&#128203; Copy</button>
+                    <button class="btn-copy" id="copyBtnA" onclick="copyQuestion('A')" disabled title="Copy question">&#128203; Copy</button>
                     <span class="model-label">LEFT</span>
                 </div>
             </div>
@@ -116,7 +119,7 @@
             <div class="model-header">
                 <span class="model-name" id="modelNameB">Model B</span>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="btn-copy" id="copyBtnB" onclick="copyQuestion('B')" disabled title="Copy question &amp; constraints">&#128203; Copy</button>
+                    <button class="btn-copy" id="copyBtnB" onclick="copyQuestion('B')" disabled title="Copy question">&#128203; Copy</button>
                     <span class="model-label">RIGHT</span>
                 </div>
             </div>
@@ -260,7 +263,23 @@
                 return;
             }
 
-            let html = `<h3>Question</h3><div class="question-text">${escapeHtml(q.question)}</div>`; if (q.constraints && q.constraints.length > 0) { html += '<h3 style="margin-top: 15px;">Constraints</h3><ul class="constraints-list">'; q.constraints.forEach(c => { html += `<li>${escapeHtml(c)}</li>`; }); html += '</ul>'; } if (q.shortTitle || q.short_title) { html += `<div style="margin-top: 10px;"><span class="short-code">${escapeHtml(q.shortTitle || q.short_title)}</span></div>`; }
+            let html = `<h3>Question</h3><div class="question-text">${escapeHtml(q.question)}</div>`;
+
+            const funcReqs = q.functional_requirements || q.functionalRequirements || [];
+            if (funcReqs.length > 0) {
+                html += '<h3 style="margin-top: 15px; color: #36b5e9;">Functional Requirements</h3><ul class="requirements-list">';
+                funcReqs.forEach(r => { html += `<li>${escapeHtml(r)}</li>`; });
+                html += '</ul>';
+            }
+
+            const nfReqs = q.non_functional_requirements || q.nonFunctionalRequirements || [];
+            if (nfReqs.length > 0) {
+                html += '<h3 style="margin-top: 15px; color: #e9a545;">Non-Functional Requirements</h3><ul class="nfr-list">';
+                nfReqs.forEach(r => { html += `<li>${escapeHtml(r)}</li>`; });
+                html += '</ul>';
+            }
+
+            if (q.shortTitle || q.short_title) { html += `<div style="margin-top: 10px;"><span class="short-code">${escapeHtml(q.shortTitle || q.short_title)}</span></div>`; }
 
             box.innerHTML = html;
         }
@@ -372,9 +391,16 @@
 
             let text = q.question || '';
 
-            if (q.constraints && q.constraints.length > 0) {
-                text += '\n\nConstraints:\n';
-                q.constraints.forEach(c => { text += `• ${c}\n`; });
+            const funcReqs = q.functional_requirements || q.functionalRequirements || [];
+            if (funcReqs.length > 0) {
+                text += '\n\nFunctional Requirements:\n';
+                funcReqs.forEach(r => { text += `✦ ${r}\n`; });
+            }
+
+            const nfReqs = q.non_functional_requirements || q.nonFunctionalRequirements || [];
+            if (nfReqs.length > 0) {
+                text += '\nNon-Functional Requirements:\n';
+                nfReqs.forEach(r => { text += `⚙ ${r}\n`; });
             }
 
             navigator.clipboard.writeText(text.trim()).then(() => {
