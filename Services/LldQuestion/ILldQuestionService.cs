@@ -11,6 +11,7 @@ public interface ILldQuestionService
     /// <summary>
     /// Generates a new LLD interview question of the specified difficulty,
     /// avoiding questions that have already been asked.
+    /// Uses the default model chain (beam-free on OpenCode Go, falling back to Groq).
     /// </summary>
     /// <param name="difficulty">The difficulty level of the question.</param>
     /// <param name="alreadyAskedShortTitles">Short titles of questions that have already been asked.</param>
@@ -25,7 +26,7 @@ public interface ILldQuestionService
     /// Generates a new LLD interview question using a specific model and provider.
     /// </summary>
     /// <param name="modelId">The ID of the model to use for generating the question.</param>
-    /// <param name="provider">The provider of the model (e.g., Groq, OpenRouter).</param>
+    /// <param name="provider">The provider of the model (e.g., Groq, OpenRouter, OpenCode).</param>
     /// <param name="difficulty">The difficulty level of the question.</param>
     /// <param name="reasoningEffort">The level of reasoning effort required for the question.</param>
     /// <param name="alreadyAskedShortTitles">Short titles of questions that have already been asked.</param>

@@ -5,7 +5,9 @@ using NewHorizonLib.Attributes;
 using NewHorizonLib.Services.Interfaces;
 using PracticeLLD.Constants;
 using PracticeLLD.Filters;
+using PracticeLLD.OpenRouter;
 using PracticeLLD.Services.LldQuestion;
+using PracticeLLD.Services.ModelComparison;
 
 namespace PracticeLLD.Controllers;
 
@@ -43,10 +45,27 @@ public class LldQuestionController : ControllerBase
             return Unauthorized("Invalid authentication");
         }
 
-        var result = await _lldQuestionService.GenerateQuestionAsync(
-            difficulty: request.Difficulty,
-            alreadyAskedShortTitles: request.AlreadyAskedShortTitles,
-            cancellationToken: cancellationToken);
+        bool hasProvider = request.Provider.HasValue;
+        bool hasModelId = !string.IsNullOrWhiteSpace(request.ModelId);
+
+        if (hasProvider != hasModelId)
+        {
+            return BadRequest("Both 'provider' and 'modelId' must be provided together.");
+        }
+
+        // No explicit provider/model: use the default chain (beam-free primary, Groq fallback).
+        var result = hasProvider
+            ? await _lldQuestionService.GenerateQuestionAsync(
+                modelId: request.ModelId!,
+                provider: request.Provider!.Value,
+                difficulty: request.Difficulty,
+                reasoningEffort: request.ReasoningEffort,
+                alreadyAskedShortTitles: request.AlreadyAskedShortTitles,
+                cancellationToken: cancellationToken)
+            : await _lldQuestionService.GenerateQuestionAsync(
+                difficulty: request.Difficulty,
+                alreadyAskedShortTitles: request.AlreadyAskedShortTitles,
+                cancellationToken: cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -65,6 +84,24 @@ public class GenerateLldQuestionRequest
     public DifficultyLevel Difficulty { get; set; } = DifficultyLevel.Medium;
 
     public List<string>? AlreadyAskedShortTitles { get; set; }
+
+    /// <summary>
+    /// Optional model provider. Provide together with <see cref="ModelId"/> to use a specific model
+    /// instead of the default Groq fallback chain.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ModelProvider? Provider { get; set; }
+
+    /// <summary>
+    /// Optional model ID belonging to <see cref="Provider"/> (e.g. "beam-free" for OpenCode).
+    /// </summary>
+    public string? ModelId { get; set; }
+
+    /// <summary>
+    /// Reasoning effort forwarded to the selected provider. Ignored by the default Groq chain.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ReasoningEffort ReasoningEffort { get; set; } = ReasoningEffort.Medium;
 }
 
 #endregion

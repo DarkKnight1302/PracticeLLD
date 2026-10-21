@@ -4,6 +4,7 @@ using PracticeLLD.Constants;
 using PracticeLLD.Filters;
 using PracticeLLD.Groq;
 using PracticeLLD.Handlers;
+using PracticeLLD.OpenCode;
 using PracticeLLD.OpenRouter;
 using PracticeLLD.Repositories;
 using PracticeLLD.Services.LldQuestion;
@@ -18,9 +19,13 @@ builder.Services.AddControllers();
 // Register OpenRouter client
 // Note: This requires NewHorizonLib be initialized to provide ISecretService service
 builder.Services.AddOpenRouterClient();
+builder.Services.AddOpenRouterCompletionClient();
 
 // Register Groq Chat Completions API client
 builder.Services.AddGroqCompletionClient();
+
+// Register OpenCode Go inference API client
+builder.Services.AddOpenCodeCompletionClient();
 
 // Register LLD Question generation service
 builder.Services.AddSingleton<ILldQuestionService, LldQuestionService>();

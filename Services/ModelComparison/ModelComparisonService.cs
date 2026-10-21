@@ -10,7 +10,8 @@ namespace PracticeLLD.Services.ModelComparison;
 public enum ModelProvider
 {
     OpenRouter,
-    Groq
+    Groq,
+    OpenCode
 }
 
 /// <summary>
@@ -35,13 +36,15 @@ public class ModelComparisonService : IModelComparisonService
 
     private static readonly List<ModelEntry> Models =
     [
-        // Groq models
-        //new("meta-llama/llama-4-scout-17b-16e-instruct", ModelProvider.Groq),
-        //new("meta-llama/llama-4-maverick-17b-128e-instruct", ModelProvider.Groq),
-        //new("openai/gpt-oss-20b", ModelProvider.Groq),
+        // Groq models (verified available: GET https://api.groq.com/openai/v1/models)
         new("openai/gpt-oss-120b", ModelProvider.Groq),
-        new("moonshotai/kimi-k2-instruct-0905", ModelProvider.Groq),
-        new("moonshotai/kimi-k2-instruct", ModelProvider.Groq),
+        new("openai/gpt-oss-20b", ModelProvider.Groq),
+
+        // OpenCode Go models (https://opencode.ai/inference/go/openai/v1/chat/completions)
+        // beam-free is free/unlimited on the Go plan; the others are included in the Go monthly usage.
+        new("beam-free", ModelProvider.OpenCode),
+        new("glm-5.3-flash", ModelProvider.OpenCode),
+        new("deepseek-v4.1-flash", ModelProvider.OpenCode),
     ];
 
     /// <summary>
